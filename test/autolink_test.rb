@@ -132,4 +132,18 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_linked "#{link_result} #{link_result} #{link_result}", "#{link_raw} #{link_raw} #{link_raw}"
     assert_linked '<a href="http://www.rubyonrails.com">Ruby On Rails</a>', '<a href="http://www.rubyonrails.com">Ruby On Rails</a>'
   end
+
+  if "".respond_to?(:force_encoding)
+    def test_copies_source_encoding
+      str = "http://www.bash.org"
+
+      ret = Rinku.auto_link str
+      assert_equal str.encoding, ret.encoding
+
+      str.encode! 'binary'
+
+      ret = Rinku.auto_link str
+      assert_equal str.encoding, ret.encoding
+    end
+  end
 end

@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include "ruby.h"
 
+#ifdef HAVE_RUBY_ENCODING_H
+#include <ruby/encoding.h>
+#else
+#define rb_enc_copy(dst, src)
+#endif
+
 #include "autolink.h"
 #include "buffer.h"
 
@@ -69,10 +75,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	bufrelease(output_buf);
 
 	/* force the input encoding */
-	if (rb_respond_to(rb_text, rb_intern("encoding"))) {
-		VALUE encoding = rb_funcall(rb_text, rb_intern("encoding"), 0);
-		rb_funcall(result, rb_intern("force_encoding"), 1, encoding);
-	}
+	rb_enc_copy(result, rb_text);
 
 	return result;
 }
