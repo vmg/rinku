@@ -28,7 +28,7 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_equal "{link: #{link3_result}}", Rinku.auto_link("{link: #{link3_raw}}")
   end
 
-def test_auto_link_with_multiple_trailing_punctuations
+  def test_auto_link_with_multiple_trailing_punctuations
     url = "http://youtube.com"
     url_result = generate_result(url)
     assert_equal url_result, Rinku.auto_link(url)

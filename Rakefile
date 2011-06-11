@@ -56,8 +56,7 @@ task :gather => 'upskirt/src/markdown.h' do |t|
   files =
     FileList[
       'upskirt/src/{buffer,autolink}.h',
-      'upskirt/src/{buffer,autolink}.c',
-      'upskirt/html/html_autolink.c'
+      'upskirt/src/{buffer,autolink}.c'
     ]
   cp files, 'ext/rinku/',
     :preserve => true,

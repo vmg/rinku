@@ -27,17 +27,223 @@
 #include "autolink.h"
 #include "buffer.h"
 
-static VALUE rb_cRinku;
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
 
-extern void
-upshtml_autolink(
+static VALUE rb_mRinku;
+
+typedef enum {
+	AUTOLINK_URLS = (1 << 0),
+	AUTOLINK_EMAILS = (1 << 1),
+	AUTOLINK_ALL = AUTOLINK_URLS|AUTOLINK_EMAILS
+} autolink_mode;
+
+typedef size_t (*autolink_parse_cb)(size_t *rewind, struct buf *, char *, size_t, size_t);
+
+typedef enum {
+	AUTOLINK_ACTION_NONE = 0,
+	AUTOLINK_ACTION_WWW,
+	AUTOLINK_ACTION_EMAIL,
+	AUTOLINK_ACTION_URL,
+	AUTOLINK_ACTION_SKIP_TAG
+} autolink_action;
+
+static autolink_parse_cb g_callbacks[] = {
+	NULL,
+	ups_autolink__www,	/* 1 */
+	ups_autolink__email,/* 2 */
+	ups_autolink__url,	/* 3 */
+};
+
+static const char *g_hrefs[] = {
+	NULL,
+	"<a href=\"http://",
+	"<a href=\"mailto:",
+	"<a href=\"",
+};
+
+static void
+autolink_escape_cb(struct buf *ob, const struct buf *text, void *unused)
+{
+	size_t  i = 0, org;
+
+	while (i < text->size) {
+		org = i;
+
+		while (i < text->size &&
+			text->data[i] != '<' &&
+			text->data[i] != '>' &&
+			text->data[i] != '&' &&
+			text->data[i] != '"')
+			i++;
+
+		if (i > org)
+			bufput(ob, text->data + org, i - org);
+
+		if (i >= text->size)
+			break;
+
+		switch (text->data[i]) {
+			case '<': BUFPUTSL(ob, "&lt;"); break;
+			case '>': BUFPUTSL(ob, "&gt;"); break;
+			case '&': BUFPUTSL(ob, "&amp;"); break;
+			case '"': BUFPUTSL(ob, "&quot;"); break;
+			default: bufputc(ob, text->data[i]); break;
+		}
+
+		i++;
+	}
+}
+
+static inline int
+is_closing_a(const char *tag, size_t size)
+{
+	size_t i;
+
+	if (tag[0] != '<' || size < STRLEN("</a>") || tag[1] != '/')
+		return 0;
+
+	i = 2;
+
+	while (i < size && isspace(tag[i]))
+		i++;
+
+	if (i == size || tag[i] != 'a')
+		return 0;
+
+	i++;
+
+	while (i < size && isspace(tag[i]))
+		i++;
+
+	if (i == size || tag[i] != '>')
+		return 0;
+
+	return i;
+}
+
+static size_t
+autolink__skip_tag(struct buf *ob, char *text, size_t size)
+{
+	size_t i = 0;
+
+	while (i < size && text[i] != '>')
+		i++;
+
+	if (size > 3 && text[1] == 'a' && isspace(text[2])) {
+		while (i < size) {
+			size_t tag_len = is_closing_a(text + i, size - i);
+			if (tag_len) {
+				i += tag_len;
+				break;
+			}
+			i++;
+		}
+	}
+
+	return i + 1;
+}
+
+int
+rinku_autolink(
 	struct buf *ob,
 	struct buf *text,
 	unsigned int flags,
 	const char *link_attr,
 	void (*link_text_cb)(struct buf *ob, const struct buf *link, void *payload),
-	void *payload);
+	void *payload)
+{
+	size_t i, end;
+	struct buf *link = bufnew(16);
+	char active_chars[256];
+	void (*link_url_cb)(struct buf *, const struct buf *, void *);
+	int link_count = 0;
 
+	if (!text || text->size == 0)
+		return;
+
+	memset(active_chars, 0x0, sizeof(active_chars));
+
+	active_chars['<'] = AUTOLINK_ACTION_SKIP_TAG;
+
+	if (flags & AUTOLINK_EMAILS)
+		active_chars['@'] = AUTOLINK_ACTION_EMAIL;
+
+	if (flags & AUTOLINK_URLS) {
+		active_chars['w'] = AUTOLINK_ACTION_WWW;
+		active_chars['W'] = AUTOLINK_ACTION_WWW;
+		active_chars[':'] = AUTOLINK_ACTION_URL;
+	}
+
+	if (link_text_cb == NULL)
+		link_text_cb = &autolink_escape_cb;
+
+	if (link_attr != NULL) {
+		while (isspace(*link_attr))
+			link_attr++;
+	}
+
+	bufgrow(ob, text->size);
+
+	i = end = 0;
+
+	while (i < text->size) {
+		size_t rewind, link_end;
+		char action;
+
+		while (end < text->size && (action = active_chars[(int)text->data[end]]) == 0)
+			end++;
+
+		if (end == text->size) {
+			if (link_count > 0)
+				bufput(ob, text->data + i, end - i);
+			break;
+		}
+
+		if (action == AUTOLINK_ACTION_SKIP_TAG) {
+			end += autolink__skip_tag(ob, text->data + end, text->size - end);
+			continue;
+		}
+
+		link->size = 0;
+		link_end = g_callbacks[(int)action](&rewind, link, text->data + end, end, text->size - end);
+
+		/* print the link */
+		if (link_end > 0) {
+			bufput(ob, text->data + i, end - i - rewind);
+
+			bufputs(ob, g_hrefs[(int)action]);
+			autolink_escape_cb(ob, link, NULL);
+
+			if (link_attr) {
+				BUFPUTSL(ob, "\" ");
+				bufputs(ob, link_attr);
+				bufputc(ob, '>');
+			} else {
+				BUFPUTSL(ob, "\">");
+			}
+
+			link_text_cb(ob, link, payload);
+			BUFPUTSL(ob, "</a>");
+
+			link_count++;
+			i = end + link_end;
+			end = i;
+		} else {
+			end = end + 1;
+		}
+	}
+
+	bufrelease(link);
+	return link_count;
+}
+
+
+/**
+ * Ruby code
+ */
 static void
 autolink_callback(struct buf *link_text, const struct buf *link, void *block)
 {
@@ -97,7 +303,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 {
 	VALUE result, rb_text, rb_mode, rb_html, rb_block;
 	struct buf input_buf = {0, 0, 0, 0, 0}, *output_buf;
-	int link_mode;
+	int link_mode, count;
 	const char *link_attr = NULL;
 	ID mode_sym;
 
@@ -119,7 +325,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 
 	input_buf.data = RSTRING_PTR(rb_text);
 	input_buf.size = RSTRING_LEN(rb_text);
-	output_buf = bufnew(128);
+	output_buf = bufnew(32);
 
 	if (mode_sym == rb_intern("all"))
 		link_mode = AUTOLINK_ALL;
@@ -131,26 +337,29 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		rb_raise(rb_eTypeError,
 			"Invalid linking mode (possible values are :all, :urls, :email_addresses)");
 
-	link_mode |= AUTOLINK_SANITIZE;
+	count = rinku_autolink(
+		output_buf,
+		&input_buf,
+		link_mode,
+		link_attr,
+		RTEST(rb_block) ? &autolink_callback : NULL,
+		(void*)rb_block);
 
-	if (RTEST(rb_block))
-		upshtml_autolink(output_buf, &input_buf, link_mode, link_attr, &autolink_callback, (void*)rb_block);
-	else
-		upshtml_autolink(output_buf, &input_buf, link_mode, link_attr, NULL, NULL);
+	if (count == 0)
+		result = rb_text;
+	else {
+		result = rb_str_new(output_buf->data, output_buf->size);
+		rb_enc_copy(result, rb_text);
+	}
 
-	result = rb_str_new(output_buf->data, output_buf->size);
 	bufrelease(output_buf);
-
-	/* force the input encoding */
-	rb_enc_copy(result, rb_text);
-
 	return result;
 }
 
 void Init_rinku()
 {
-	rb_cRinku = rb_define_class("Rinku", rb_cObject);
-	rb_define_singleton_method(rb_cRinku, "auto_link", rb_rinku_autolink, -1);
+	rb_mRinku = rb_define_module("Rinku");
+	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 }
 
 
