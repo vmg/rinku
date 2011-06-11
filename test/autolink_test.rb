@@ -11,6 +11,74 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_equal expected, Rinku.auto_link(url)
   end
 
+  def test_auto_link_with_brackets
+    link1_raw = 'http://en.wikipedia.org/wiki/Sprite_(computer_graphics)'
+    link1_result = generate_result(link1_raw)
+    assert_equal link1_result, Rinku.auto_link(link1_raw)
+    assert_equal "(link: #{link1_result})", Rinku.auto_link("(link: #{link1_raw})")
+
+    link2_raw = 'http://en.wikipedia.org/wiki/Sprite_[computer_graphics]'
+    link2_result = generate_result(link2_raw)
+    assert_equal link2_result, Rinku.auto_link(link2_raw)
+    assert_equal "[link: #{link2_result}]", Rinku.auto_link("[link: #{link2_raw}]")
+
+    link3_raw = 'http://en.wikipedia.org/wiki/Sprite_{computer_graphics}'
+    link3_result = generate_result(link3_raw)
+    assert_equal link3_result, Rinku.auto_link(link3_raw)
+    assert_equal "{link: #{link3_result}}", Rinku.auto_link("{link: #{link3_raw}}")
+  end
+
+def test_auto_link_with_multiple_trailing_punctuations
+    url = "http://youtube.com"
+    url_result = generate_result(url)
+    assert_equal url_result, Rinku.auto_link(url)
+    assert_equal "(link: #{url_result}).", Rinku.auto_link("(link: #{url}).")
+  end
+
+  def test_auto_link_with_block
+    url = "http://api.rubyonrails.com/Foo.html"
+    email = "fantabulous@shiznadel.ic"
+
+    assert_equal %(<p><a href="#{url}">#{url[0...7]}...</a><br /><a href="mailto:#{email}">#{email[0...7]}...</a><br /></p>), Rinku.auto_link("<p>#{url}<br />#{email}<br /></p>") { |_url| _url[0...7] + '...'}
+  end
+
+  def test_auto_link_with_block_with_html
+    pic = "http://example.com/pic.png"
+    url = "http://example.com/album?a&b=c"
+
+    assert_equal %(My pic: <a href="#{pic}"><img src="#{pic}" width="160px"></a> -- full album here #{generate_result(url)}), Rinku.auto_link("My pic: #{pic} -- full album here #{url}") { |link|
+      if link =~ /\.(jpg|gif|png|bmp|tif)$/i
+        %(<img src="#{CGI.escapeHTML link}" width="160px">)
+      else
+        CGI.escapeHTML link
+      end
+    }
+  end
+
+  def test_auto_link_already_linked
+    linked1 = generate_result('Ruby On Rails', 'http://www.rubyonrails.com')
+    linked2 = %('<a href="http://www.example.com">www.example.com</a>')
+    linked3 = %('<a href="http://www.example.com" rel="nofollow">www.example.com</a>')
+    linked4 = %('<a href="http://www.example.com"><b>www.example.com</b></a>')
+    linked5 = %('<a href="#close">close</a> <a href="http://www.example.com"><b>www.example.com</b></a>')
+    assert_equal linked1, Rinku.auto_link(linked1)
+    assert_equal linked2, Rinku.auto_link(linked2)
+    assert_equal linked3, Rinku.auto_link(linked3)
+    assert_equal linked4, Rinku.auto_link(linked4)
+    assert_equal linked5, Rinku.auto_link(linked5)
+
+    linked_email = %Q(<a href="mailto:david@loudthinking.com">Mail me</a>)
+    assert_equal linked_email, Rinku.auto_link(linked_email)
+  end
+
+
+  def test_auto_link_at_eol
+    url1 = "http://api.rubyonrails.com/Foo.html"
+    url2 = "http://www.ruby-doc.org/core/Bar.html"
+
+    assert_equal %(<p><a href="#{url1}">#{url1}</a><br /><a href="#{url2}">#{url2}</a><br /></p>), Rinku.auto_link("<p>#{url1}<br />#{url2}<br /></p>")
+  end  
+
   def test_block
     link = Rinku.auto_link("Find ur favorite pokeman @ http://www.pokemon.com") do |url|
       assert_equal url, "http://www.pokemon.com"
@@ -18,11 +86,6 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     end
 
     assert_equal link, "Find ur favorite pokeman @ <a href=\"http://www.pokemon.com\">POKEMAN WEBSITE</a>"
-  end
-
-  def test_link_attributes
-    assert_equal Rinku.auto_link("http://www.bash.org", :html => {:target => "_blank"}),
-      "<a target=\"_blank\" href=\"http://www.bash.org\">http://www.bash.org</a>"
   end
 
   def test_autolink_works
@@ -70,7 +133,7 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
             )
 
     urls.each do |url|
-      assert_linked %(<a href="#{url}">#{CGI.escapeHTML(url)}</a>), url
+      assert_linked %(<a href="#{CGI.escapeHTML url}">#{CGI.escapeHTML url}</a>), url
     end
   end
 
@@ -87,13 +150,13 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     link3_raw    = 'http://manuals.ruby-on-rails.com/read/chapter.need_a-period/103#page281'
     link3_result = %{<a href="#{link3_raw}">#{link3_raw}</a>}
     link4_raw    = 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor123'
-    link4_result = %{<a href="#{link4_raw}">#{CGI.escapeHTML(link4_raw)}</a>}
+    link4_result = %{<a href="#{CGI.escapeHTML link4_raw}">#{CGI.escapeHTML link4_raw}</a>}
     link5_raw    = 'http://foo.example.com:3000/controller/action'
     link5_result = %{<a href="#{link5_raw}">#{link5_raw}</a>}
     link6_raw    = 'http://foo.example.com:3000/controller/action+pack'
     link6_result = %{<a href="#{link6_raw}">#{link6_raw}</a>}
     link7_raw    = 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor-123'
-    link7_result = %{<a href="#{link7_raw}">#{CGI.escapeHTML(link7_raw)}</a>}
+    link7_result = %{<a href="#{CGI.escapeHTML link7_raw}">#{CGI.escapeHTML link7_raw}</a>}
     link8_raw    = 'http://foo.example.com:3000/controller/action.html'
     link8_result = %{<a href="#{link8_raw}">#{link8_raw}</a>}
     link9_raw    = 'http://business.timesonline.co.uk/article/0,,9065-2473189,00.html'
@@ -146,4 +209,10 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
       assert_equal str.encoding, ret.encoding
     end
   end
+
+  def generate_result(link_text, href = nil)
+    href ||= link_text
+    %{<a href="#{CGI::escapeHTML href}">#{CGI::escapeHTML link_text}</a>}
+  end
+  
 end

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'rinku'
-  s.version = File.open('VERSION').read.strip
+  s.version = '1.1.0'
   s.summary = "Mostly autolinking"
   s.description = <<-EOF
     A fast and very smart autolinking library that
@@ -12,7 +12,6 @@ Gem::Specification.new do |s|
   # = MANIFEST =
   s.files = %w[
     COPYING
-    VERSION
     README.markdown
     Rakefile
     ext/rinku/rinku.c
@@ -23,6 +22,7 @@ Gem::Specification.new do |s|
     ext/rinku/html_autolink.c
     ext/rinku/extconf.rb
     lib/rinku.rb
+    lib/rails_rinku.rb
     rinku.gemspec
     test/autolink_test.rb
   ]
