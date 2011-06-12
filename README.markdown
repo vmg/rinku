@@ -43,7 +43,7 @@ specifier but starting with `www.` will also be autolinked, defaulting to
 the `http://` protocol.
 
 - `text` is a string in plain text or HTML markup. If the string is formatted in
-HTML, Rinku is smart enough to skip the links that are already enclosed in <a>
+HTML, Rinku is smart enough to skip the links that are already enclosed in `<a>`
 tags.
 
 - `mode` is a symbol, either :all, :urls or :email_addresses, which specifies which
