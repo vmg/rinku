@@ -2,7 +2,7 @@ require 'rinku'
 
 module RailsRinku
   def auto_link(text, *args, &block)
-    return ''.html_safe if text.blank?
+    return '' if text.blank?
 
     options = args.size == 2 ? {} : args.extract_options!
     unless args.empty?
