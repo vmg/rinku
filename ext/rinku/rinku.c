@@ -193,7 +193,7 @@ rinku_autolink(
 		size_t rewind, link_end;
 		char action;
 
-		while (end < text->size && (action = active_chars[(int)text->data[end]]) == 0)
+		while (end < text->size && (action = active_chars[text->data[end] & 0xFF]) == 0)
 			end++;
 
 		if (end == text->size) {
