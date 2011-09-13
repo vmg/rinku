@@ -4,9 +4,13 @@ $LOAD_PATH.unshift "#{rootdir}/lib"
 
 require 'test/unit'
 require 'cgi'
+require 'uri'
 require 'rinku'
 
 class RedcarpetAutolinkTest < Test::Unit::TestCase
+
+  SAFE_CHARS = "{}[]~'"
+
   def assert_linked(expected, url)
     assert_equal expected, Rinku.auto_link(url)
   end
@@ -128,12 +132,12 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
               http://www.mail-archive.com/rails@lists.rubyonrails.org/
               http://www.amazon.com/Testing-Equal-Sign-In-Path/ref=pd_bbs_sr_1?ie=UTF8&s=books&qid=1198861734&sr=8-1
               http://en.wikipedia.org/wiki/Sprite_(computer_graphics)
-              http://en.wikipedia.org/wiki/Texas_hold'em
+              http://en.wikipedia.org/wiki/Texas_hold%27em
               https://www.google.com/doku.php?id=gps:resource:scs:start
             )
 
     urls.each do |url|
-      assert_linked %(<a href="#{CGI.escapeHTML url}">#{CGI.escapeHTML url}</a>), url
+      assert_linked %(<a href="#{CGI.escapeHTML URI.escape(url, SAFE_CHARS)}">#{CGI.escapeHTML url}</a>), url
     end
   end
 
@@ -212,7 +216,7 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
 
   def generate_result(link_text, href = nil)
     href ||= link_text
-    %{<a href="#{CGI::escapeHTML href}">#{CGI::escapeHTML link_text}</a>}
+    %{<a href="#{CGI::escapeHTML URI.escape(href, SAFE_CHARS)}">#{CGI::escapeHTML link_text}</a>}
   end
   
 end

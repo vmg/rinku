@@ -35,12 +35,18 @@
 static VALUE rb_mRinku;
 
 typedef enum {
+	HTML_TAG_NONE = 0,
+	HTML_TAG_OPEN,
+	HTML_TAG_CLOSE,
+} html_tag;
+
+typedef enum {
 	AUTOLINK_URLS = (1 << 0),
 	AUTOLINK_EMAILS = (1 << 1),
 	AUTOLINK_ALL = AUTOLINK_URLS|AUTOLINK_EMAILS
 } autolink_mode;
 
-typedef size_t (*autolink_parse_cb)(size_t *rewind, struct buf *, char *, size_t, size_t);
+typedef size_t (*autolink_parse_cb)(size_t *rewind, struct buf *, uint8_t *, size_t, size_t);
 
 typedef enum {
 	AUTOLINK_ACTION_NONE = 0,
@@ -52,9 +58,9 @@ typedef enum {
 
 static autolink_parse_cb g_callbacks[] = {
 	NULL,
-	ups_autolink__www,	/* 1 */
-	ups_autolink__email,/* 2 */
-	ups_autolink__url,	/* 3 */
+	sd_autolink__www,	/* 1 */
+	sd_autolink__email,/* 2 */
+	sd_autolink__url,	/* 3 */
 };
 
 static const char *g_hrefs[] = {
@@ -65,91 +71,88 @@ static const char *g_hrefs[] = {
 };
 
 static void
-autolink_escape_cb(struct buf *ob, const struct buf *text, void *unused)
+autolink__html_escape(struct buf *ob, const struct buf *link, void *payload)
 {
-	size_t  i = 0, org;
-
-	while (i < text->size) {
-		org = i;
-
-		while (i < text->size &&
-			text->data[i] != '<' &&
-			text->data[i] != '>' &&
-			text->data[i] != '&' &&
-			text->data[i] != '"')
-			i++;
-
-		if (i > org)
-			bufput(ob, text->data + org, i - org);
-
-		if (i >= text->size)
-			break;
-
-		switch (text->data[i]) {
-			case '<': BUFPUTSL(ob, "&lt;"); break;
-			case '>': BUFPUTSL(ob, "&gt;"); break;
-			case '&': BUFPUTSL(ob, "&amp;"); break;
-			case '"': BUFPUTSL(ob, "&quot;"); break;
-			default: bufputc(ob, text->data[i]); break;
-		}
-
-		i++;
-	}
+	houdini_escape_html0(ob, link->data, link->size, 0);
 }
 
-static inline int
-is_closing_a(const char *tag, size_t size)
+/* From sundown/html/html.c */
+static int
+html_is_tag(const uint8_t *tag_data, size_t tag_size, const char *tagname)
 {
 	size_t i;
+	int closed = 0;
 
-	if (tag[0] != '<' || size < STRLEN("</a>") || tag[1] != '/')
-		return 0;
+	if (tag_size < 3 || tag_data[0] != '<')
+		return HTML_TAG_NONE;
 
-	i = 2;
+	i = 1;
 
-	while (i < size && isspace(tag[i]))
+	if (tag_data[i] == '/') {
+		closed = 1;
 		i++;
+	}
 
-	if (i == size || tag[i] != 'a')
-		return 0;
+	for (; i < tag_size; ++i, ++tagname) {
+		if (*tagname == 0)
+			break;
 
-	i++;
+		if (tag_data[i] != *tagname)
+			return HTML_TAG_NONE;
+	}
 
-	while (i < size && isspace(tag[i]))
-		i++;
+	if (i == tag_size)
+		return HTML_TAG_NONE;
 
-	if (i == size || tag[i] != '>')
-		return 0;
+	if (isspace(tag_data[i]) || tag_data[i] == '>')
+		return closed ? HTML_TAG_CLOSE : HTML_TAG_OPEN;
 
-	return i;
+	return HTML_TAG_NONE;
 }
 
 static size_t
-autolink__skip_tag(struct buf *ob, char *text, size_t size)
+autolink__skip_tag(struct buf *ob, const uint8_t *text, size_t size)
 {
-	size_t i = 0;
+	static const char *skip_tags[] = {"a", "pre", "code", "kbd", "script"};
+	static const size_t skip_tags_count = 5;
+
+	size_t tag, i = 0;
 
 	while (i < size && text[i] != '>')
 		i++;
 
-	if (size > 3 && text[1] == 'a' && isspace(text[2])) {
-		while (i < size) {
-			size_t tag_len = is_closing_a(text + i, size - i);
-			if (tag_len) {
-				i += tag_len;
-				break;
-			}
-			i++;
-		}
+	for (tag = 0; tag < skip_tags_count; ++tag) {
+		if (html_is_tag(text, size, skip_tags[tag]) == HTML_TAG_OPEN)
+			break;
 	}
 
-	return i + 1;
+	if (tag < skip_tags_count) {
+		for (;;) {
+			while (i < size && text[i] != '<')
+				i++;
+
+			if (i == size)
+				break;
+
+			if (html_is_tag(text + i, size - i, skip_tags[tag]) == HTML_TAG_CLOSE)
+				break;
+
+			i++;
+		}
+
+		while (i < size && text[i] != '>')
+			i++;
+	}
+
+//	bufput(ob, text, i + 1);
+	return i;
 }
 
 int
 rinku_autolink(
 	struct buf *ob,
-	struct buf *text,
+	const uint8_t *text,
+	size_t size,
 	unsigned int flags,
 	const char *link_attr,
 	void (*link_text_cb)(struct buf *ob, const struct buf *link, void *payload),
@@ -161,7 +164,7 @@ rinku_autolink(
 	void (*link_url_cb)(struct buf *, const struct buf *, void *);
 	int link_count = 0;
 
-	if (!text || text->size == 0)
+	if (!text || size == 0)
 		return;
 
 	memset(active_chars, 0x0, sizeof(active_chars));
@@ -178,44 +181,44 @@ rinku_autolink(
 	}
 
 	if (link_text_cb == NULL)
-		link_text_cb = &autolink_escape_cb;
+		link_text_cb = &autolink__html_escape;
 
 	if (link_attr != NULL) {
 		while (isspace(*link_attr))
 			link_attr++;
 	}
 
-	bufgrow(ob, text->size);
+	bufgrow(ob, size);
 
 	i = end = 0;
 
-	while (i < text->size) {
+	while (i < size) {
 		size_t rewind, link_end;
 		char action;
 
-		while (end < text->size && (action = active_chars[text->data[end] & 0xFF]) == 0)
+		while (end < size && (action = active_chars[text[end]]) == 0)
 			end++;
 
-		if (end == text->size) {
+		if (end == size) {
 			if (link_count > 0)
-				bufput(ob, text->data + i, end - i);
+				bufput(ob, text + i, end - i);
 			break;
 		}
 
 		if (action == AUTOLINK_ACTION_SKIP_TAG) {
-			end += autolink__skip_tag(ob, text->data + end, text->size - end);
+			end += autolink__skip_tag(ob, text + end, size - end);
 			continue;
 		}
 
 		link->size = 0;
-		link_end = g_callbacks[(int)action](&rewind, link, text->data + end, end, text->size - end);
+		link_end = g_callbacks[(int)action](&rewind, link, (uint8_t *)text + end, end, size - end);
 
 		/* print the link */
 		if (link_end > 0) {
-			bufput(ob, text->data + i, end - i - rewind);
+			bufput(ob, text + i, end - i - rewind);
 
 			bufputs(ob, g_hrefs[(int)action]);
-			autolink_escape_cb(ob, link, NULL);
+			houdini_escape_href(ob, link->data, link->size);
 
 			if (link_attr) {
 				BUFPUTSL(ob, "\" ");
@@ -302,7 +305,7 @@ static VALUE
 rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 {
 	VALUE result, rb_text, rb_mode, rb_html, rb_block;
-	struct buf input_buf = {0, 0, 0, 0, 0}, *output_buf;
+	struct buf *output_buf;
 	int link_mode, count;
 	const char *link_attr = NULL;
 	ID mode_sym;
@@ -323,8 +326,6 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		link_attr = RSTRING_PTR(rb_html);
 	}
 
-	input_buf.data = RSTRING_PTR(rb_text);
-	input_buf.size = RSTRING_LEN(rb_text);
 	output_buf = bufnew(32);
 
 	if (mode_sym == rb_intern("all"))
@@ -339,7 +340,8 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 
 	count = rinku_autolink(
 		output_buf,
-		&input_buf,
+		RSTRING_PTR(rb_text),
+		RSTRING_LEN(rb_text),
 		link_mode,
 		link_attr,
 		RTEST(rb_block) ? &autolink_callback : NULL,
