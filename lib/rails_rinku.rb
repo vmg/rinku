@@ -1,7 +1,7 @@
 require 'rinku'
 
 module RailsRinku
-  def auto_link(text, *args, &block)
+  def rinku_auto_link(text, *args, &block)
     return '' if text.blank?
 
     options = args.size == 2 ? {} : args.extract_options!
@@ -18,4 +18,5 @@ end
 
 module ActionView::Helpers::TextHelper
  include RailsRinku
+ alias_method :auto_link, :rinku_auto_link
 end
