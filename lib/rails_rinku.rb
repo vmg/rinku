@@ -10,7 +10,6 @@ module RailsRinku
       options[:html] = args[1] || {}
     end
     options.reverse_merge!(:link => :all, :html => {})
-    text = sanitize(text) unless options[:sanitize] == false
 
     Rinku.auto_link(text, options[:link], tag_options(options[:html]), &block)
   end
