@@ -8,10 +8,15 @@ module RailsRinku
     unless args.empty?
       options[:link] = args[0] || :all
       options[:html] = args[1] || {}
+      options[:skip] = args[2]
     end
     options.reverse_merge!(:link => :all, :html => {})
 
-    Rinku.auto_link(text, options[:link], tag_options(options[:html]), &block)
+    Rinku.auto_link text,
+      options[:link],
+      tag_options(options[:html]),
+      options[:skip],
+      &block
   end
 end
 
