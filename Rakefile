@@ -50,21 +50,3 @@ file package('.gem') => %w[pkg/ rinku.gemspec] + $spec.files do |f|
 end
 
 # GEMSPEC HELPERS ==========================================================
-
-desc 'Gather required Upskirt sources into extension directory'
-task :gather => 'upskirt/src/markdown.h' do |t|
-  files =
-    FileList[
-      'upskirt/src/{buffer,autolink}.h',
-      'upskirt/src/{buffer,autolink}.c'
-    ]
-  cp files, 'ext/rinku/',
-    :preserve => true,
-    :verbose => true
-end
-
-file 'upskirt/src/markdown.h' do |t|
-  abort "The Upskirt submodule is required."
-end
-
-
