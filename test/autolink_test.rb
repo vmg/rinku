@@ -15,6 +15,10 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_equal expected, Rinku.auto_link(url)
   end
 
+  def test_does_not_segfault
+    assert_linked "< this is just a test", "< this is just a test"
+  end
+
   def test_auto_link_with_brackets
     link1_raw = 'http://en.wikipedia.org/wiki/Sprite_(computer_graphics)'
     link1_result = generate_result(link1_raw)
