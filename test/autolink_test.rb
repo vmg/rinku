@@ -19,6 +19,31 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_linked "< this is just a test", "< this is just a test"
   end
 
+  def test_skips_tags
+    html = <<-html
+This is just a test. http://www.pokemon.com
+<div>
+  More test
+  http://www.amd.com
+</div>
+<pre>
+  CODE www.less.es
+</pre>
+    html
+
+    result = <<-result
+This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
+<div>
+  More test
+  http://www.amd.com
+</div>
+<pre>
+  CODE <a href="http://www.less.es">www.less.es</a>
+</pre>
+    result
+    assert_equal result, Rinku.auto_link(html, :all, nil, ["div", "a"])
+  end
+
   def test_auto_link_with_brackets
     link1_raw = 'http://en.wikipedia.org/wiki/Sprite_(computer_graphics)'
     link1_result = generate_result(link1_raw)
