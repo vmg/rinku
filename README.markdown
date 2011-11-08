@@ -89,7 +89,8 @@ Rinku is written by me
 ----------------------
 
 I am Vicent Marti, and I wrote Rinku.
-While Rinku is busy doing autolinks, you should be busy following me on twitter. `@tanoku`. Do it.
+While Rinku is busy doing autolinks, you should be busy following me on twitter.
+[`@tanoku`](http://twitter.com/tanoku). Do it.
 
 Rinku has an awesome license
 ----------------------------
