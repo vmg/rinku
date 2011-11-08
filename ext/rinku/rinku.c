@@ -26,6 +26,7 @@
 
 #include "autolink.h"
 #include "buffer.h"
+#include "houdini.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -170,7 +171,7 @@ rinku_autolink(
 	int link_count = 0;
 
 	if (!text || size == 0)
-		return;
+		return 0;
 
 	memset(active_chars, 0x0, sizeof(active_chars));
 
@@ -199,7 +200,7 @@ rinku_autolink(
 
 	while (i < size) {
 		size_t rewind, link_end;
-		char action;
+		char action = 0;
 
 		while (end < size && (action = active_chars[text[end]]) == 0)
 			end++;
@@ -344,7 +345,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	}
 
 	if (!NIL_P(rb_skip)) {
-		long i;
+		size_t i;
 
 		Check_Type(rb_skip, T_ARRAY);
 
