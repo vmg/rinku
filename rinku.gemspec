@@ -1,6 +1,8 @@
+# encoding: UTF-8
+
 Gem::Specification.new do |s|
   s.name = 'rinku'
-  s.version = '1.4.0'
+  s.version = '1.4.1'
   s.summary = "Mostly autolinking"
   s.description = <<-EOF
     A fast and very smart autolinking library that
