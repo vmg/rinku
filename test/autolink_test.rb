@@ -79,11 +79,14 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     pic = "http://example.com/pic.png"
     url = "http://example.com/album?a&b=c"
 
-    assert_equal %(My pic: <a href="#{pic}"><img src="#{pic}" width="160px"></a> -- full album here #{generate_result(url)}), Rinku.auto_link("My pic: #{pic} -- full album here #{url}") { |link|
+    expect = %(My pic: <a href="#{pic}"><img src="#{pic}" width="160px"></a> -- full album here #{generate_result(url)})
+    text = "My pic: #{pic} -- full album here #{CGI.escapeHTML url}"
+
+    assert_equal expect, Rinku.auto_link(text) { |link|
       if link =~ /\.(jpg|gif|png|bmp|tif)$/i
-        %(<img src="#{CGI.escapeHTML link}" width="160px">)
+        %(<img src="#{link}" width="160px">)
       else
-        CGI.escapeHTML link
+        link
       end
     }
   end
@@ -166,7 +169,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
             )
 
     urls.each do |url|
-      assert_linked %(<a href="#{CGI.escapeHTML URI.escape(url, SAFE_CHARS)}">#{CGI.escapeHTML url}</a>), url
+      assert_linked %(<a href="#{CGI.escapeHTML url}">#{CGI.escapeHTML url}</a>), CGI.escapeHTML(url)
     end
   end
 
@@ -182,14 +185,14 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     link2_result = %{<a href="http://#{link2_raw}">#{link2_raw}</a>}
     link3_raw    = 'http://manuals.ruby-on-rails.com/read/chapter.need_a-period/103#page281'
     link3_result = %{<a href="#{link3_raw}">#{link3_raw}</a>}
-    link4_raw    = 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor123'
-    link4_result = %{<a href="#{CGI.escapeHTML link4_raw}">#{CGI.escapeHTML link4_raw}</a>}
+    link4_raw    = CGI.escapeHTML 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor123'
+    link4_result = %{<a href="#{link4_raw}">#{link4_raw}</a>}
     link5_raw    = 'http://foo.example.com:3000/controller/action'
     link5_result = %{<a href="#{link5_raw}">#{link5_raw}</a>}
     link6_raw    = 'http://foo.example.com:3000/controller/action+pack'
     link6_result = %{<a href="#{link6_raw}">#{link6_raw}</a>}
-    link7_raw    = 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor-123'
-    link7_result = %{<a href="#{CGI.escapeHTML link7_raw}">#{CGI.escapeHTML link7_raw}</a>}
+    link7_raw    = CGI.escapeHTML 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor-123'
+    link7_result = %{<a href="#{link7_raw}">#{link7_raw}</a>}
     link8_raw    = 'http://foo.example.com:3000/controller/action.html'
     link8_result = %{<a href="#{link8_raw}">#{link8_raw}</a>}
     link9_raw    = 'http://business.timesonline.co.uk/article/0,,9065-2473189,00.html'
@@ -245,7 +248,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
 
   def generate_result(link_text, href = nil)
     href ||= link_text
-    %{<a href="#{CGI::escapeHTML URI.escape(href, SAFE_CHARS)}">#{CGI::escapeHTML link_text}</a>}
+    %{<a href="#{CGI.escapeHTML href}">#{CGI.escapeHTML link_text}</a>}
   end
   
 end

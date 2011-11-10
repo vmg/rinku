@@ -26,7 +26,6 @@
 
 #include "autolink.h"
 #include "buffer.h"
-#include "houdini.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -73,9 +72,9 @@ static const char *g_hrefs[] = {
 };
 
 static void
-autolink__html_escape(struct buf *ob, const struct buf *link, void *payload)
+autolink__print(struct buf *ob, const struct buf *link, void *payload)
 {
-	houdini_escape_html0(ob, link->data, link->size, 0);
+	bufput(ob, link->data, link->size);
 }
 
 /* From sundown/html/html.c */
@@ -187,7 +186,7 @@ rinku_autolink(
 	}
 
 	if (link_text_cb == NULL)
-		link_text_cb = &autolink__html_escape;
+		link_text_cb = &autolink__print;
 
 	if (link_attr != NULL) {
 		while (isspace(*link_attr))
@@ -228,7 +227,7 @@ rinku_autolink(
 			bufput(ob, text + i, end - i - rewind);
 
 			bufputs(ob, g_hrefs[(int)action]);
-			houdini_escape_href(ob, link->data, link->size);
+			bufput(ob, link->data, link->size);
 
 			if (link_attr) {
 				BUFPUTSL(ob, "\" ");
@@ -276,6 +275,13 @@ autolink_callback(struct buf *link_text, const struct buf *link, void *block)
  *
  * Parses a block of text looking for "safe" urls or email addresses,
  * and turns them into HTML links with the given attributes.
+ *
+ * NOTE: The block of text may or may not be HTML; if the text is HTML,
+ * Rinku will skip the relevant tags to prevent double-linking and linking
+ * inside `pre` blocks by default.
+ *
+ * NOTE: If the input text is HTML, it's expected to be already escaped.
+ * Rinku will perform no escaping.
  *
  * NOTE: Currently the follow protocols are considered safe and are the
  * only ones that will be autolinked.

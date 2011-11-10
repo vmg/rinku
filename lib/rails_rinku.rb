@@ -10,8 +10,9 @@ module RailsRinku
       options[:html] = args[1] || {}
     end
     options.reverse_merge!(:link => :all, :html => {})
+    text = text.html_safe unless text.html_safe?
 
-    Rinku.auto_link(text, options[:link], tag_options(options[:html]), &block)
+    Rinku.auto_link(text.html_safe, options[:link], tag_options(options[:html]), &block)
   end
 end
 
