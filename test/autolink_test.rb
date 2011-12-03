@@ -14,6 +14,13 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
   def assert_linked(expected, url)
     assert_equal expected, Rinku.auto_link(url)
   end
+  
+  def test_auto_link_with_single_trailing_punctuation_and_space
+    url = "http://www.youtube.com"
+    url_result = generate_result(url)
+    assert_equal url_result, Rinku.auto_link(url)
+    assert_equal "link: #{url_result}. foo?", Rinku.auto_link("link: #{url}. foo?")
+  end
 
   def test_does_not_segfault
     assert_linked "< this is just a test", "< this is just a test"

@@ -50,3 +50,18 @@ file package('.gem') => %w[pkg/ rinku.gemspec] + $spec.files do |f|
 end
 
 # GEMSPEC HELPERS ==========================================================
+task :gather => 'sundown/src/autolink.h' do |t|
+  files =
+    FileList[
+      'sundown/src/{buffer,autolink}.h',
+      'sundown/src/{buffer,autolink}.c',
+    ]
+  cp files, 'ext/rinku/',
+    :preserve => true,
+    :verbose => true
+end
+
+
+file 'sundown/src/autolink.h' do |t|
+  abort "The Sundown submodule is required."
+end
