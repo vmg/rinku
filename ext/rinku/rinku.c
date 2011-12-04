@@ -116,20 +116,21 @@ autolink__skip_tag(
 	struct buf *ob,
 	const uint8_t *text,
 	size_t size,
-	const char **skip_tags,
-	size_t skip_tags_count)
+	const char **skip_tags)
 {
-	size_t tag, i = 0;
+	size_t i = 0;
 
 	while (i < size && text[i] != '>')
 		i++;
 
-	for (tag = 0; tag < skip_tags_count; ++tag) {
-		if (html_is_tag(text, size, skip_tags[tag]) == HTML_TAG_OPEN)
+	while (*skip_tags != NULL) {
+		if (html_is_tag(text, size, *skip_tags) == HTML_TAG_OPEN)
 			break;
+
+		skip_tags++;
 	}
 
-	if (tag < skip_tags_count) {
+	if (*skip_tags != NULL) {
 		for (;;) {
 			while (i < size && text[i] != '<')
 				i++;
@@ -137,7 +138,7 @@ autolink__skip_tag(
 			if (i == size)
 				break;
 
-			if (html_is_tag(text + i, size - i, skip_tags[tag]) == HTML_TAG_CLOSE)
+			if (html_is_tag(text + i, size - i, *skip_tags) == HTML_TAG_CLOSE)
 				break;
 
 			i++;
@@ -159,7 +160,6 @@ rinku_autolink(
 	unsigned int flags,
 	const char *link_attr,
 	const char **skip_tags,
-	size_t skip_tags_count,
 	void (*link_text_cb)(struct buf *ob, const struct buf *link, void *payload),
 	void *payload)
 {
@@ -212,8 +212,7 @@ rinku_autolink(
 
 		if (action == AUTOLINK_ACTION_SKIP_TAG) {
 			end += autolink__skip_tag(ob,
-				text + end, size - end,
-				skip_tags, skip_tags_count);
+				text + end, size - end, skip_tags);
 
 			continue;
 		}
@@ -264,6 +263,26 @@ autolink_callback(struct buf *link_text, const struct buf *link, void *block)
 	rb_link_text = rb_funcall((VALUE)block, rb_intern("call"), 1, rb_link);
 	Check_Type(rb_link_text, T_STRING);
 	bufput(link_text, RSTRING_PTR(rb_link_text), RSTRING_LEN(rb_link_text));
+}
+
+const char **rinku_load_tags(VALUE rb_skip)
+{
+	const char **skip_tags;
+	size_t i, count;
+
+	Check_Type(rb_skip, T_ARRAY);
+
+	count = RARRAY_LEN(rb_skip);
+	skip_tags = xmalloc(sizeof(void *) * (count + 1));
+
+	for (i = 0; i < count; ++i) {
+		VALUE tag = rb_ary_entry(rb_skip, i);
+		Check_Type(tag, T_STRING);
+		skip_tags[i] = StringValueCStr(tag);
+	}
+
+	skip_tags[count] = NULL;
+	return skip_tags;
 }
 
 /*
@@ -324,14 +343,13 @@ autolink_callback(struct buf *link_text, const struct buf *link, void *block)
 static VALUE
 rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 {
-	static const char *SKIP_TAGS[] = {"a", "pre", "code", "kbd", "script"};
+	static const char *SKIP_TAGS[] = {"a", "pre", "code", "kbd", "script", NULL};
 
 	VALUE result, rb_text, rb_mode, rb_html, rb_skip, rb_block;
 	struct buf *output_buf;
 	int link_mode, count;
 	const char *link_attr = NULL;
 	const char **skip_tags = NULL;
-	size_t skip_tags_count;
 	ID mode_sym;
 
 	rb_scan_args(argc, argv, "13&", &rb_text, &rb_mode, &rb_html, &rb_skip, &rb_block);
@@ -350,25 +368,13 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		link_attr = RSTRING_PTR(rb_html);
 	}
 
-	if (!NIL_P(rb_skip)) {
-		size_t i;
+	if (NIL_P(rb_skip))
+		rb_skip = rb_iv_get(self, "@skip_tags");
 
-		Check_Type(rb_skip, T_ARRAY);
-
-		skip_tags_count = RARRAY_LEN(rb_skip);
-		skip_tags = malloc(sizeof(void *) * skip_tags_count);
-		if (!skip_tags)
-			rb_raise(rb_eNoMemError, "Out of memory");
-
-		for (i = 0; i < skip_tags_count; ++i) {
-			VALUE tag = rb_ary_entry(rb_skip, i);
-			Check_Type(tag, T_STRING);
-
-			skip_tags[i] = StringValueCStr(tag);
-		}
-	} else {
+	if (NIL_P(rb_skip)) {
 		skip_tags = SKIP_TAGS;
-		skip_tags_count = sizeof(SKIP_TAGS) / sizeof(SKIP_TAGS[0]);
+	} else {
+		skip_tags = rinku_load_tags(rb_skip);
 	}
 
 	output_buf = bufnew(32);
@@ -390,7 +396,6 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		link_mode,
 		link_attr,
 		skip_tags,
-		skip_tags_count,
 		RTEST(rb_block) ? &autolink_callback : NULL,
 		(void*)rb_block);
 
@@ -402,7 +407,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	}
 
 	if (skip_tags != SKIP_TAGS)
-		free(skip_tags);
+		xfree(skip_tags);
 
 	bufrelease(output_buf);
 	return result;
@@ -413,5 +418,4 @@ void Init_rinku()
 	rb_mRinku = rb_define_module("Rinku");
 	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 }
-
 

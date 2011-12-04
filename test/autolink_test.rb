@@ -14,6 +14,19 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
   def assert_linked(expected, url)
     assert_equal expected, Rinku.auto_link(url)
   end
+
+  def test_global_skip_tags
+    assert_equal Rinku.skip_tags, nil
+    Rinku.skip_tags = ['pre']
+    assert_equal Rinku.skip_tags, ['pre']
+
+    Rinku.skip_tags = ['pa']
+    url = 'This is just a <pa>http://www.pokemon.com</pa> test'
+    assert_equal Rinku.auto_link(url), url
+
+    Rinku.skip_tags = nil
+    assert_not_equal Rinku.auto_link(url), url
+  end
   
   def test_auto_link_with_single_trailing_punctuation_and_space
     url = "http://www.youtube.com"
