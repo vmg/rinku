@@ -11,7 +11,7 @@ module RailsRinku
       options[:skip] = args[2]
     end
     options.reverse_merge!(:link => :all, :html => {})
-    text = text.html_safe unless text.html_safe?
+    text = h(text) unless text.html_safe?
 
     Rinku.auto_link text,
       options[:link],
