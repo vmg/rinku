@@ -13,11 +13,13 @@ module RailsRinku
     options.reverse_merge!(:link => :all, :html => {})
     text = h(text) unless text.html_safe?
 
-    Rinku.auto_link text,
+    Rinku.auto_link(
+      text,
       options[:link],
       tag_options(options[:html]),
       options[:skip],
       &block
+    ).html_safe
   end
 end
 
