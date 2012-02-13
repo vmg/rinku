@@ -77,6 +77,34 @@ autolink__print(struct buf *ob, const struct buf *link, void *payload)
 	bufput(ob, link->data, link->size);
 }
 
+/*
+ * Rinku assumes valid HTML encoding for all input, but there's still
+ * the case where a link can contain a double quote `"` that allows XSS.
+ *
+ * We need to properly escape the character we use for the `href` attribute
+ * declaration
+ */
+static void print_link(struct buf *ob, const char *link, size_t size)
+{
+	size_t i = 0, org;
+
+	while (i < size) {
+		org = i;
+
+		while (i < size && link[i] != '"')
+			i++;
+
+		if (i > org)
+			bufput(ob, link + org, i - org);
+
+		if (i >= size)
+			break;
+
+		BUFPUTSL(ob, "&quot;");
+		i++;
+	}
+}
+
 /* From sundown/html/html.c */
 static int
 html_is_tag(const uint8_t *tag_data, size_t tag_size, const char *tagname)
@@ -226,7 +254,7 @@ rinku_autolink(
 			bufput(ob, text + i, end - i - rewind);
 
 			bufputs(ob, g_hrefs[(int)action]);
-			bufput(ob, link->data, link->size);
+			print_link(ob, link->data, link->size);
 
 			if (link_attr) {
 				BUFPUTSL(ob, "\" ");

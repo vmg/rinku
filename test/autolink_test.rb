@@ -15,6 +15,11 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_equal expected, Rinku.auto_link(url)
   end
 
+  def test_escapes_quotes
+    assert_linked %(<a href="http://website.com/&quot;onmouseover=document.body.style.backgroundColor=&quot;pink&quot;;//">http://website.com/"onmouseover=document.body.style.backgroundColor="pink";//</a>),
+      %(http://website.com/"onmouseover=document.body.style.backgroundColor="pink";//)
+  end
+
   def test_global_skip_tags
     assert_equal Rinku.skip_tags, nil
     Rinku.skip_tags = ['pre']
