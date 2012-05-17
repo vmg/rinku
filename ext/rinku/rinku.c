@@ -442,8 +442,8 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
                 /* raise exception */
                 rb_raise(rb_eTypeError, "'short_domains' needs to be true or false!");
                 break;
+        }
     }
-	}
 
 	output_buf = bufnew(32);
 
