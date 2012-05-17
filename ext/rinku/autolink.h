@@ -31,6 +31,8 @@ sd_autolink__email(size_t *rewind_p, struct buf *link, uint8_t *data, size_t off
 extern size_t
 sd_autolink__url(size_t *rewind_p, struct buf *link, uint8_t *data, size_t offset, size_t size);
 
+#include "rinku.h"
+
 #endif
 
 /* vim: set filetype=c: */

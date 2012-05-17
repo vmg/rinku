@@ -71,6 +71,21 @@ static const char *g_hrefs[] = {
 	"<a href=\"",
 };
 
+static VALUE short_domains = 0;
+
+const VALUE
+allow_short_domains(void)
+{
+	return short_domains;
+}
+
+static VALUE
+set_allow_short_domains(VALUE val)
+{
+	short_domains = val;
+	return short_domains;
+}
+
 static void
 autolink__print(struct buf *ob, const struct buf *link, void *payload)
 {
@@ -317,8 +332,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * Document-method: auto_link
  *
  * call-seq:
- *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil)
- *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil) { |link_text| ... }
+ *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=0)
+ *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=0) { |link_text| ... }
  *
  * Parses a block of text looking for "safe" urls or email addresses,
  * and turns them into HTML links with the given attributes.
@@ -361,6 +376,11 @@ const char **rinku_load_tags(VALUE rb_skip)
  * when autolinking. If `nil`, this defaults to the value of the global `Rinku.skip_tags`,
  * which is initially `["a", "pre", "code", "kbd", "script"]`.
  *
+ * -   `short_domains` is an integer value specifying whether we recognize 'http://foo' as
+ * a valid domain.  It's 0 by default, meaning domains must have at least one '.' in them.
+ * Any integer value other than 0 will make autolink recognize 'http://foo' as a valid
+ * domain and link it.
+ *
  * -   `&block` is an optional block argument. If a block is passed, it will
  * be yielded for each found link in the text, and its return value will be used instead
  * of the name of the link. E.g.
@@ -377,14 +397,14 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 {
 	static const char *SKIP_TAGS[] = {"a", "pre", "code", "kbd", "script", NULL};
 
-	VALUE result, rb_text, rb_mode, rb_html, rb_skip, rb_block;
+	VALUE result, rb_text, rb_mode, rb_html, rb_skip, rb_shortdomains, rb_block;
 	struct buf *output_buf;
 	int link_mode, count;
 	const char *link_attr = NULL;
 	const char **skip_tags = NULL;
 	ID mode_sym;
 
-	rb_scan_args(argc, argv, "13&", &rb_text, &rb_mode, &rb_html, &rb_skip, &rb_block);
+	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode, &rb_html, &rb_skip, &rb_shortdomains, &rb_block);
 
 	Check_Type(rb_text, T_STRING);
 
@@ -407,6 +427,14 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		skip_tags = SKIP_TAGS;
 	} else {
 		skip_tags = rinku_load_tags(rb_skip);
+	}
+
+	if (NIL_P(rb_shortdomains))
+		rb_shortdomains = rb_iv_get(self, "@short_domains");
+
+	if (!NIL_P(rb_shortdomains)) {
+		Check_Type(rb_shortdomains, T_FIXNUM);
+		short_domains = FIX2INT(rb_shortdomains);
 	}
 
 	output_buf = bufnew(32);
