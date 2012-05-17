@@ -332,8 +332,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * Document-method: auto_link
  *
  * call-seq:
- *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=0)
- *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=0) { |link_text| ... }
+ *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=false)
+ *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=false) { |link_text| ... }
  *
  * Parses a block of text looking for "safe" urls or email addresses,
  * and turns them into HTML links with the given attributes.
@@ -376,10 +376,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * when autolinking. If `nil`, this defaults to the value of the global `Rinku.skip_tags`,
  * which is initially `["a", "pre", "code", "kbd", "script"]`.
  *
- * -   `short_domains` is an integer value specifying whether we recognize 'http://foo' as
- * a valid domain.  It's 0 by default, meaning domains must have at least one '.' in them.
- * Any integer value other than 0 will make autolink recognize 'http://foo' as a valid
- * domain and link it.
+ * -   `short_domains` is an optional boolean value specifying whether to recognize
+ * 'http://foo' as a valid domain, or require at least one '.'. It defaults to false.
  *
  * -   `&block` is an optional block argument. If a block is passed, it will
  * be yielded for each found link in the text, and its return value will be used instead
@@ -433,8 +431,18 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		rb_shortdomains = rb_iv_get(self, "@short_domains");
 
 	if (!NIL_P(rb_shortdomains)) {
-		Check_Type(rb_shortdomains, T_FIXNUM);
-		short_domains = FIX2INT(rb_shortdomains);
+		switch (TYPE(rb_shortdomains)) {
+			case T_TRUE:
+				short_domains = 1;
+				break;
+			case T_FALSE:
+				short_domains = 0;
+                break;
+            default:
+                /* raise exception */
+                rb_raise(rb_eTypeError, "'short_domains' needs to be true or false!");
+                break;
+    }
 	}
 
 	output_buf = bufnew(32);
