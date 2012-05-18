@@ -131,7 +131,6 @@ static size_t
 check_domain(uint8_t *data, size_t size)
 {
 	size_t i, np = 0;
-	FILE *file;
 
 	if (!isalnum(data[0]))
 		return 0;
@@ -140,26 +139,16 @@ check_domain(uint8_t *data, size_t size)
 		if (data[i] == '.') np++;
 		else if (!isalnum(data[i]) && data[i] != '-') break;
 	}
-	file = fopen("/tmp/wuggle", "a+");
-
-	printf("Yo, I'm totally in check_domain and allow_short_domains() is %d\n\n", allow_short_domains());
-	fprintf(file, "Yo, I'm totally in check_domain and allow_short_domains() is %d\n\n", allow_short_domains());
 
 	if (allow_short_domains()) {
 		/* We don't need a valid domain in the strict sense (with
 		 * least one dot; so just make sure it's composed of valid
 		 * domain characters and return the length of the the valid
 		 * sequence. */
-		printf("It was true and I'm returning %d for i\n", i);
-		fprintf(file, "It was true and I'm returning %d for i\n", i);
-		fclose(file);
 		return i;
 	} else {
 		/* a valid domain needs to have at least a dot.
 		 * that's as far as we get */
-		printf("It was false and np: %d and i: %d \n", np, i);
-		fprintf(file, "It was false and np: %d and i: %d \n", np, i);
-		fclose(file);
 		return np ? i : 0;
 	}
 }
