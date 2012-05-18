@@ -1,6 +1,6 @@
 module Rinku
   VERSION = "1.5.1"
-  attr_accessor :skip_tags
+  attr_accessor :skip_tags, :short_domains
   extend self
 end
 
