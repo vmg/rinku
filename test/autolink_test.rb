@@ -154,6 +154,31 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "<a href=\"#{url}\">#{url}</a>", url
   end
 
+  def test_autolink_options_for_short_domains
+    assert_equal Rinku.short_domains, nil
+    Rinku.short_domains = true
+    assert_equal Rinku.short_domains, true
+
+    url = "http://google"
+    linked_url = "<a href=\"#{url}\">#{url}</a>"
+    assert_linked linked_url, url
+
+    Rinku.short_domains = false
+    assert_equal Rinku.short_domains, false
+    url = "http://google"
+    assert_equal Rinku.auto_link(url), url
+
+    # Specifying use short_domains in the args
+    url = "http://google"
+    linked_url = "<a href=\"#{url}\">#{url}</a>"
+    assert_equal Rinku.auto_link(url, nil, nil, nil, true), linked_url
+
+    # Specifying no short_domains in the args
+    url = "http://google"
+    linked_url = "<a href=\"#{url}\">#{url}</a>"
+    assert_equal Rinku.auto_link(url, nil, nil, nil, false), url
+  end
+
   def test_not_autolink_www
     assert_linked "Awww... man", "Awww... man"
   end

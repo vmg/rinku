@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'rinku'
-  s.version = '1.5.1'
+  s.version = '1.5.1.1'
   s.summary = "Mostly autolinking"
   s.description = <<-EOF
     A fast and very smart autolinking library that
@@ -17,6 +17,7 @@ Gem::Specification.new do |s|
     README.markdown
     Rakefile
     ext/rinku/rinku.c
+    ext/rinku/rinku.h
     ext/rinku/autolink.c
     ext/rinku/autolink.h
     ext/rinku/buffer.c

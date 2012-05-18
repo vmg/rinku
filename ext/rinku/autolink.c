@@ -140,9 +140,17 @@ check_domain(uint8_t *data, size_t size)
 		else if (!isalnum(data[i]) && data[i] != '-') break;
 	}
 
-	/* a valid domain needs to have at least a dot.
-	 * that's as far as we get */
-	return np ? i : 0;
+	if (allow_short_domains()) {
+		/* We don't need a valid domain in the strict sense (with
+		 * least one dot; so just make sure it's composed of valid
+		 * domain characters and return the length of the the valid
+		 * sequence. */
+		return i;
+	} else {
+		/* a valid domain needs to have at least a dot.
+		 * that's as far as we get */
+		return np ? i : 0;
+	}
 }
 
 size_t
