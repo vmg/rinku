@@ -43,11 +43,11 @@ typedef enum {
 typedef enum {
 	AUTOLINK_URLS = (1 << 0),
 	AUTOLINK_EMAILS = (1 << 1),
-	AUTOLINK_IN_CODE = (1 << 2),
 	AUTOLINK_ALL = AUTOLINK_URLS|AUTOLINK_EMAILS
 } autolink_mode;
 
-typedef size_t (*autolink_parse_cb)(size_t *rewind, struct buf *, uint8_t *, size_t, size_t);
+typedef size_t (*autolink_parse_cb)(
+	size_t *rewind, struct buf *, uint8_t *, size_t, size_t, unsigned int);
 
 typedef enum {
 	AUTOLINK_ACTION_NONE = 0,
@@ -70,21 +70,6 @@ static const char *g_hrefs[] = {
 	"<a href=\"mailto:",
 	"<a href=\"",
 };
-
-static VALUE short_domains = 0;
-
-const VALUE
-allow_short_domains(void)
-{
-	return short_domains;
-}
-
-static VALUE
-set_allow_short_domains(VALUE val)
-{
-	short_domains = val;
-	return short_domains;
-}
 
 static void
 autolink__print(struct buf *ob, const struct buf *link, void *payload)
@@ -200,6 +185,7 @@ rinku_autolink(
 	struct buf *ob,
 	const uint8_t *text,
 	size_t size,
+	autolink_mode mode,
 	unsigned int flags,
 	const char *link_attr,
 	const char **skip_tags,
@@ -219,10 +205,10 @@ rinku_autolink(
 
 	active_chars['<'] = AUTOLINK_ACTION_SKIP_TAG;
 
-	if (flags & AUTOLINK_EMAILS)
+	if (mode & AUTOLINK_EMAILS)
 		active_chars['@'] = AUTOLINK_ACTION_EMAIL;
 
-	if (flags & AUTOLINK_URLS) {
+	if (mode & AUTOLINK_URLS) {
 		active_chars['w'] = AUTOLINK_ACTION_WWW;
 		active_chars['W'] = AUTOLINK_ACTION_WWW;
 		active_chars[':'] = AUTOLINK_ACTION_URL;
@@ -262,7 +248,7 @@ rinku_autolink(
 
 		link->size = 0;
 		link_end = g_callbacks[(int)action](
-			&rewind, link, (uint8_t *)text + end, end, size - end);
+			&rewind, link, (uint8_t *)text + end, end, size - end, flags);
 
 		/* print the link */
 		if (link_end > 0) {
@@ -332,8 +318,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * Document-method: auto_link
  *
  * call-seq:
- *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=false)
- *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, short_domains=false) { |link_text| ... }
+ *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, flags=0)
+ *  auto_link(text, mode=:all, link_attr=nil, skip_tags=nil, flags=0) { |link_text| ... }
  *
  * Parses a block of text looking for "safe" urls or email addresses,
  * and turns them into HTML links with the given attributes.
@@ -376,7 +362,7 @@ const char **rinku_load_tags(VALUE rb_skip)
  * when autolinking. If `nil`, this defaults to the value of the global `Rinku.skip_tags`,
  * which is initially `["a", "pre", "code", "kbd", "script"]`.
  *
- * -   `short_domains` is an optional boolean value specifying whether to recognize
+ * -   `flag` is an optional boolean value specifying whether to recognize
  * 'http://foo' as a valid domain, or require at least one '.'. It defaults to false.
  *
  * -   `&block` is an optional block argument. If a block is passed, it will
@@ -395,14 +381,16 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 {
 	static const char *SKIP_TAGS[] = {"a", "pre", "code", "kbd", "script", NULL};
 
-	VALUE result, rb_text, rb_mode, rb_html, rb_skip, rb_shortdomains, rb_block;
+	VALUE result, rb_text, rb_mode, rb_html, rb_skip, rb_flags, rb_block;
 	struct buf *output_buf;
 	int link_mode, count;
+	unsigned int link_flags = 0;
 	const char *link_attr = NULL;
 	const char **skip_tags = NULL;
 	ID mode_sym;
 
-	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode, &rb_html, &rb_skip, &rb_shortdomains, &rb_block);
+	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode,
+		&rb_html, &rb_skip, &rb_flags, &rb_block); 
 
 	Check_Type(rb_text, T_STRING);
 
@@ -427,23 +415,10 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		skip_tags = rinku_load_tags(rb_skip);
 	}
 
-	if (NIL_P(rb_shortdomains))
-		rb_shortdomains = rb_iv_get(self, "@short_domains");
-
-	if (!NIL_P(rb_shortdomains)) {
-		switch (TYPE(rb_shortdomains)) {
-			case T_TRUE:
-				short_domains = 1;
-				break;
-			case T_FALSE:
-				short_domains = 0;
-                break;
-            default:
-                /* raise exception */
-                rb_raise(rb_eTypeError, "'short_domains' needs to be true or false!");
-                break;
-        }
-    }
+	if (!NIL_P(rb_flags)) {
+		Check_Type(rb_flags, T_FIXNUM);
+		link_flags = FIX2INT(rb_flags);
+	}
 
 	output_buf = bufnew(32);
 
@@ -462,6 +437,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		RSTRING_PTR(rb_text),
 		RSTRING_LEN(rb_text),
 		link_mode,
+		link_flags,
 		link_attr,
 		skip_tags,
 		RTEST(rb_block) ? &autolink_callback : NULL,
@@ -481,9 +457,10 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	return result;
 }
 
-void Init_rinku()
+void __attribute__((visibility("default"))) Init_rinku()
 {
 	rb_mRinku = rb_define_module("Rinku");
 	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
+	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(SD_AUTOLINK_SHORT_DOMAINS));
 }
 

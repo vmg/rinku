@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'rinku'
-  s.version = '1.5.1.1'
+  s.version = '1.6.1'
   s.summary = "Mostly autolinking"
   s.description = <<-EOF
     A fast and very smart autolinking library that
@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   EOF
   s.email = 'vicent@github.com'
   s.homepage = 'http://github.com/tanoku/rinku'
-  s.authors = ["Vicent Martí"]
+  s.authors = ["Vicent Marti"]
   # = MANIFEST =
   s.files = %w[
     COPYING
