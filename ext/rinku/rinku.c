@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include "ruby.h"
 
+#define RUBY_EXPORT __attribute__ ((visibility ("default")))
+
 #ifdef HAVE_RUBY_ENCODING_H
 #include <ruby/encoding.h>
 #else
@@ -457,7 +459,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	return result;
 }
 
-void __attribute__((visibility("default"))) Init_rinku()
+void RUBY_EXPORT Init_rinku()
 {
 	rb_mRinku = rb_define_module("Rinku");
 	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
