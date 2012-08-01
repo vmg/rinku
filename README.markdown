@@ -16,7 +16,7 @@ Rinku is available as a Ruby gem:
 
 The Rinku source is available at GitHub:
 
-    $ git clone git://github.com/tanoku/rinku.git
+    $ git clone git://github.com/vmg/rinku.git
 
 Rinku is a standalone library
 -----------------------------
@@ -101,7 +101,7 @@ Rinku is written by me
 
 I am Vicent Marti, and I wrote Rinku.
 While Rinku is busy doing autolinks, you should be busy following me on twitter.
-[`@tanoku`](http://twitter.com/tanoku). Do it.
+[`@vmg`](http://twitter.com/vmg). Do it.
 
 Rinku has an awesome license
 ----------------------------
