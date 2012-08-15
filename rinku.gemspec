@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
     acts as a drop-in replacement for Rails `auto_link`
   EOF
   s.email = 'vicent@github.com'
-  s.homepage = 'http://github.com/tanoku/rinku'
+  s.homepage = 'http://github.com/vmg/rinku'
   s.authors = ["Vicent Marti"]
   # = MANIFEST =
   s.files = %w[
