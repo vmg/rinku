@@ -154,7 +154,6 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_equal "UTF-8", url.encoding.to_s
 
     link = Rinku.auto_link(url) do |url|
-      assert_equal "UTF-8", url.encoding.to_s
       url
     end
 
