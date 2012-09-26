@@ -149,6 +149,24 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_equal link, "Find ur favorite pokeman @ <a href=\"http://www.pokemon.com\">POKEMAN WEBSITE</a>"
   end
 
+  def test_block_encoding
+    url = "http://example.com/х"
+    assert_equal "UTF-8", url.encoding.to_s
+
+    link = Rinku.auto_link(url) do |url|
+      assert_equal "UTF-8", url.encoding.to_s
+      url
+    end
+
+    assert_equal link.encoding.to_s, "UTF-8"
+  end
+
+  def test_links_with_cyrillic_x
+    url = "http://example.com/х"
+
+    assert_linked "<a href=\"#{url}\">#{url}</a>", url
+  end
+
   def test_autolink_works
     url = "http://example.com/"
     assert_linked "<a href=\"#{url}\">#{url}</a>", url
