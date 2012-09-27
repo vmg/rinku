@@ -32,7 +32,7 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     Rinku.skip_tags = nil
     assert_not_equal Rinku.auto_link(url), url
   end
-  
+
   def test_auto_link_with_single_trailing_punctuation_and_space
     url = "http://www.youtube.com"
     url_result = generate_result(url)
@@ -138,7 +138,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     url2 = "http://www.ruby-doc.org/core/Bar.html"
 
     assert_equal %(<p><a href="#{url1}">#{url1}</a><br /><a href="#{url2}">#{url2}</a><br /></p>), Rinku.auto_link("<p>#{url1}<br />#{url2}<br /></p>")
-  end  
+  end
 
   def test_block
     link = Rinku.auto_link("Find ur favorite pokeman @ http://www.pokemon.com") do |url|
@@ -296,10 +296,11 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
       url = "http://example.com/х"
       assert_equal "UTF-8", url.encoding.to_s
 
-      link = Rinku.auto_link(url) do |url|
-        url
+      link = Rinku.auto_link(url) do |u|
+        assert_equal "UTF-8", u.encoding.to_s
+        u
       end
-      
+
       assert_equal link.encoding.to_s, "UTF-8"
     end
 
