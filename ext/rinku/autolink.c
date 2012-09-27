@@ -20,9 +20,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 #include "ruby.h"
+
+#ifdef HAVE_RUBY_ENCODING_H
 #include <ruby/encoding.h>
+#define isalnum(s) rb_isalnum(s)
+#define isspace(s) rb_isspace(s)
+#define isalpha(s) rb_isalpha(s)
+#define ispunct(s) rb_ispunct(s)
+#else
+#include <ctype.h>
+#endif
+
 
 #if defined(_WIN32)
 #define strncasecmp	_strnicmp
@@ -43,7 +52,7 @@ sd_autolink_issafe(const uint8_t *link, size_t link_len)
 
 		if (link_len > len &&
 			strncasecmp((char *)link, valid_uris[i], len) == 0 &&
-			rb_isalnum(link[len]))
+			isalnum(link[len]))
 			return 1;
 	}
 
@@ -69,7 +78,7 @@ autolink_delim(uint8_t *data, size_t link_end, size_t offset, size_t size)
 		else if (data[link_end - 1] == ';') {
 			size_t new_end = link_end - 2;
 
-			while (new_end > 0 && rb_isalpha(data[new_end]))
+			while (new_end > 0 && isalpha(data[new_end]))
 				new_end--;
 
 			if (new_end < link_end - 2 && data[new_end] == '&')
@@ -139,12 +148,12 @@ check_domain(uint8_t *data, size_t size, int allow_short)
 {
 	size_t i, np = 0;
 
-	if (!rb_isalnum(data[0]))
+	if (!isalnum(data[0]))
 		return 0;
 
 	for (i = 1; i < size - 1; ++i) {
 		if (data[i] == '.') np++;
-		else if (!rb_isalnum(data[i]) && data[i] != '-') break;
+		else if (!isalnum(data[i]) && data[i] != '-') break;
 	}
 
 	if (allow_short) {
@@ -171,7 +180,7 @@ sd_autolink__www(
 {
 	size_t link_end;
 
-	if (offset > 0 && !rb_ispunct(data[-1]) && !rb_isspace(data[-1]))
+	if (offset > 0 && !ispunct(data[-1]) && !isspace(data[-1]))
 		return 0;
 
 	if (size < 4 || memcmp(data, "www.", strlen("www.")) != 0)
@@ -182,7 +191,7 @@ sd_autolink__www(
 	if (link_end == 0)
 		return 0;
 
-	while (link_end < size && !rb_isspace(data[link_end]))
+	while (link_end < size && !isspace(data[link_end]))
 		link_end++;
 
 	link_end = autolink_delim(data, link_end, offset, size);
@@ -211,7 +220,7 @@ sd_autolink__email(
 	for (rewind = 0; rewind < offset; ++rewind) {
 		uint8_t c = data[-rewind - 1];
 
-		if (rb_isalnum(c))
+		if (isalnum(c))
 			continue;
 
 		if (strchr(".+-_", c) != NULL)
@@ -226,7 +235,7 @@ sd_autolink__email(
 	for (link_end = 0; link_end < size; ++link_end) {
 		uint8_t c = data[link_end];
 
-		if (rb_isalnum(c))
+		if (isalnum(c))
 			continue;
 
 		if (c == '@')
@@ -265,7 +274,7 @@ sd_autolink__url(
 	if (size < 4 || data[1] != '/' || data[2] != '/')
 		return 0;
 
-	while (rewind < offset && rb_isalpha(data[-rewind - 1]))
+	while (rewind < offset && isalpha(data[-rewind - 1]))
 		rewind++;
 
 	if (!sd_autolink_issafe(data - rewind, size + rewind))
@@ -282,7 +291,7 @@ sd_autolink__url(
 		return 0;
 
 	link_end += domain_len;
-	while (link_end < size && !rb_isspace(data[link_end]))
+	while (link_end < size && !isspace(data[link_end]))
 		link_end++;
 
 	link_end = autolink_delim(data, link_end, offset, size);
@@ -295,4 +304,3 @@ sd_autolink__url(
 
 	return link_end;
 }
-
