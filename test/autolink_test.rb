@@ -15,6 +15,10 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_equal expected, Rinku.auto_link(url)
   end
 
+  def test_segfault
+    Rinku.auto_link("a+b@d.com+e@f.com", mode=:all)
+  end
+
   def test_escapes_quotes
     assert_linked %(<a href="http://website.com/&quot;onmouseover=document.body.style.backgroundColor=&quot;pink&quot;;//">http://website.com/"onmouseover=document.body.style.backgroundColor="pink";//</a>),
       %(http://website.com/"onmouseover=document.body.style.backgroundColor="pink";//)

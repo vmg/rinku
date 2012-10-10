@@ -194,7 +194,7 @@ rinku_autolink(
 	void (*link_text_cb)(struct buf *ob, const struct buf *link, void *payload),
 	void *payload)
 {
-	size_t i, end;
+	size_t i, end, last_link_found = 0;
 	struct buf *link = bufnew(16);
 	char active_chars[256];
 	void (*link_url_cb)(struct buf *, const struct buf *, void *);
@@ -249,8 +249,11 @@ rinku_autolink(
 		}
 
 		link->size = 0;
+
 		link_end = g_callbacks[(int)action](
-			&rewind, link, (uint8_t *)text + end, end, size - end, flags);
+			&rewind, link, (uint8_t *)text + end,
+			end - last_link_found,
+			size - end, flags);
 
 		/* print the link */
 		if (link_end > 0) {
@@ -272,7 +275,7 @@ rinku_autolink(
 
 			link_count++;
 			i = end + link_end;
-			end = i;
+			last_link_found = end = i;
 		} else {
 			end = end + 1;
 		}
