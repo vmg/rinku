@@ -50,7 +50,7 @@ file package('.gem') => %w[pkg/ rinku.gemspec] + $spec.files do |f|
 end
 
 # GEMSPEC HELPERS ==========================================================
-task :gather => 'sundown/src/autolink.h' do |t|
+task :gather => 'sundown:checkout' do |t|
   files =
     FileList[
       'sundown/src/{buffer,autolink}.h',
@@ -61,7 +61,9 @@ task :gather => 'sundown/src/autolink.h' do |t|
     :verbose => true
 end
 
-
-file 'sundown/src/autolink.h' do |t|
-  abort "The Sundown submodule is required."
+task 'sundown:checkout' do |t|
+  unless File.exists?('sundown/src/markdown.h')
+    sh 'git submodule init'
+    sh 'git submodule update'
+  end
 end
