@@ -24,6 +24,8 @@
 #include <ruby/encoding.h>
 #else
 #define rb_enc_copy(dst, src)
+#define rb_enc_set_index(str, idx)
+#define rb_enc_get_index(str) 1
 #endif
 
 #include "autolink.h"
@@ -74,7 +76,7 @@ static const char *g_hrefs[] = {
 };
 
 static void
-autolink__print(struct buf *ob, const struct buf *link, void *payload)
+autolink__print(struct buf *ob, const struct buf *link, void *payload, int enc_index)
 {
 	bufput(ob, link->data, link->size);
 }
@@ -191,7 +193,8 @@ rinku_autolink(
 	unsigned int flags,
 	const char *link_attr,
 	const char **skip_tags,
-	void (*link_text_cb)(struct buf *ob, const struct buf *link, void *payload),
+	void (*link_text_cb)(struct buf *ob, const struct buf *link, void *payload, int enc_index),
+	int enc_index,
 	void *payload)
 {
 	size_t i, end, last_link_found = 0;
@@ -270,7 +273,7 @@ rinku_autolink(
 				BUFPUTSL(ob, "\">");
 			}
 
-			link_text_cb(ob, link, payload);
+			link_text_cb(ob, link, payload, enc_index);
 			BUFPUTSL(ob, "</a>");
 
 			link_count++;
@@ -290,10 +293,11 @@ rinku_autolink(
  * Ruby code
  */
 static void
-autolink_callback(struct buf *link_text, const struct buf *link, void *block)
+autolink_callback(struct buf *link_text, const struct buf *link, void *block, int enc_index)
 {
 	VALUE rb_link, rb_link_text;
 	rb_link = rb_str_new(link->data, link->size);
+	rb_enc_set_index(rb_link, enc_index);
 	rb_link_text = rb_funcall((VALUE)block, rb_intern("call"), 1, rb_link);
 	Check_Type(rb_link_text, T_STRING);
 	bufput(link_text, RSTRING_PTR(rb_link_text), RSTRING_LEN(rb_link_text));
@@ -349,8 +353,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * HTML, Rinku is smart enough to skip the links that are already enclosed in `<a>`
  * tags.`
  *
- * -   `mode` is a symbol, either `:all`, `:urls` or `:email_addresses`, 
- * which specifies which kind of links will be auto-linked. 
+ * -   `mode` is a symbol, either `:all`, `:urls` or `:email_addresses`,
+ * which specifies which kind of links will be auto-linked.
  *
  * -   `link_attr` is a string containing the link attributes for each link that
  * will be generated. These attributes are not sanitized and will be include as-is
@@ -395,7 +399,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	ID mode_sym;
 
 	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode,
-		&rb_html, &rb_skip, &rb_flags, &rb_block); 
+		&rb_html, &rb_skip, &rb_flags, &rb_block);
 
 	Check_Type(rb_text, T_STRING);
 
@@ -437,6 +441,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		rb_raise(rb_eTypeError,
 			"Invalid linking mode (possible values are :all, :urls, :email_addresses)");
 
+
 	count = rinku_autolink(
 		output_buf,
 		RSTRING_PTR(rb_text),
@@ -446,6 +451,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		link_attr,
 		skip_tags,
 		RTEST(rb_block) ? &autolink_callback : NULL,
+		rb_enc_get_index(rb_text),
 		(void*)rb_block);
 
 	if (count == 0)
@@ -468,4 +474,3 @@ void RUBY_EXPORT Init_rinku()
 	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(SD_AUTOLINK_SHORT_DOMAINS));
 }
-

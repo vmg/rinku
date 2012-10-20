@@ -20,7 +20,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "ruby.h"
+
+#ifdef HAVE_RUBY_ENCODING_H
+#include <ruby/encoding.h>
+#define isalnum(s) rb_isalnum(s)
+#define isspace(s) rb_isspace(s)
+#define isalpha(s) rb_isalpha(s)
+#define ispunct(s) rb_ispunct(s)
+#else
 #include <ctype.h>
+#endif
+
 
 #if defined(_WIN32)
 #define strncasecmp	_strnicmp
@@ -293,4 +304,3 @@ sd_autolink__url(
 
 	return link_end;
 }
-
