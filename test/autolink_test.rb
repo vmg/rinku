@@ -310,7 +310,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     end
 
     def test_bad_encoding
-      url = "http://example.com/ümlaut".encode("ISO-8859-1")
+      url = "http://example.com/ümlaut".encode("UTF-16")
       assert_raise ArgumentError do
         Rinku.auto_link(url)
       end

@@ -25,7 +25,8 @@
 #else
 #define rb_enc_copy(dst, src)
 #define rb_enc_str_new(dst, src, enc) rb_str_new(dst, src)
-#define rb_enc_compatible(str1, str2) 1
+#define rb_enc_asciicompat(str1) 1
+#define rb_enc_get(str) 1
 #define rb_enc_set_index(str, idx)
 #define rb_enc_get_index(str) 1
 #endif
@@ -39,7 +40,6 @@
 #include <ctype.h>
 
 static VALUE rb_mRinku;
-static VALUE umlaut;
 
 typedef enum {
 	HTML_TAG_NONE = 0,
@@ -296,7 +296,7 @@ rinku_autolink(
 static void
 check_utf8(VALUE str)
 {
-  if(!rb_enc_compatible(umlaut, str)) {
+  if(!rb_enc_asciicompat(rb_enc_get(str))) {
 		rb_raise(rb_eArgError,
 			"Invalid encoding");
   }
@@ -482,7 +482,6 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 void RUBY_EXPORT Init_rinku()
 {
 	rb_mRinku = rb_define_module("Rinku");
-	umlaut = rb_enc_str_new("ü", 1, rb_utf8_encoding());
 	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(SD_AUTOLINK_SHORT_DOMAINS));
 }
