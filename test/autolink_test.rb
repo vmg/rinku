@@ -41,7 +41,9 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     url = "http://www.youtube.com"
     url_result = generate_result(url)
     assert_equal url_result, Rinku.auto_link(url)
-    assert_equal "link: #{url_result}. foo?", Rinku.auto_link("link: #{url}. foo?")
+    ["?", "!", ".", ",", ":"].each do |punc|
+      assert_equal "link: #{url_result}#{punc} foo?", Rinku.auto_link("link: #{url}#{punc} foo?")
+    end
   end
 
   def test_does_not_segfault
