@@ -36,12 +36,14 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     Rinku.skip_tags = nil
     assert_not_equal Rinku.auto_link(url), url
   end
-  
+
   def test_auto_link_with_single_trailing_punctuation_and_space
     url = "http://www.youtube.com"
     url_result = generate_result(url)
     assert_equal url_result, Rinku.auto_link(url)
-    assert_equal "link: #{url_result}. foo?", Rinku.auto_link("link: #{url}. foo?")
+    ["?", "!", ".", ",", ":"].each do |punc|
+      assert_equal "link: #{url_result}#{punc} foo?", Rinku.auto_link("link: #{url}#{punc} foo?")
+    end
   end
 
   def test_does_not_segfault
@@ -142,7 +144,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     url2 = "http://www.ruby-doc.org/core/Bar.html"
 
     assert_equal %(<p><a href="#{url1}">#{url1}</a><br /><a href="#{url2}">#{url2}</a><br /></p>), Rinku.auto_link("<p>#{url1}<br />#{url2}<br /></p>")
-  end  
+  end
 
   def test_block
     link = Rinku.auto_link("Find ur favorite pokeman @ http://www.pokemon.com") do |url|

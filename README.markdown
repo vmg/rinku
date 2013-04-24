@@ -96,6 +96,14 @@ require 'rails_rinku'
 The `rails_rinku` package monkeypatches Rails with an `auto_link` method that
 mimics 100% the original one, parameter per parameter. It's just faster.
 
+Developing
+----------
+```
+$ gem install rake-compiler
+
+$ rake
+```
+
 Rinku is written by me
 ----------------------
 
