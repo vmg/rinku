@@ -67,7 +67,7 @@ autolink_delim(uint8_t *data, size_t link_end, size_t offset, size_t size)
 		else if (data[link_end - 1] == ';') {
 			size_t new_end = link_end - 2;
 
-			while (new_end > 0 && isalpha(data[new_end]))
+			while (new_end > 0 && (isalnum(data[new_end]) || data[new_end] == '#'))
 				new_end--;
 
 			if (new_end < link_end - 2 && data[new_end] == '&')
