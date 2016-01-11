@@ -33,4 +33,5 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = ["COPYING"]
   s.extensions = ["ext/rinku/extconf.rb"]
   s.require_paths = ["lib"]
+  s.add_development_dependency("rake-compiler")
 end
