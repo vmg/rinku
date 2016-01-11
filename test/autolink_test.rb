@@ -2,12 +2,12 @@
 rootdir = File.dirname(File.dirname(__FILE__))
 $LOAD_PATH.unshift "#{rootdir}/lib"
 
-require 'test/unit'
+require 'minitest/autorun'
 require 'cgi'
 require 'uri'
 require 'rinku'
 
-class RedcarpetAutolinkTest < Test::Unit::TestCase
+class RedcarpetAutolinkTest < Minitest::Test
 
   SAFE_CHARS = "{}[]~'"
 
@@ -34,7 +34,7 @@ class RedcarpetAutolinkTest < Test::Unit::TestCase
     assert_equal Rinku.auto_link(url), url
 
     Rinku.skip_tags = nil
-    assert_not_equal Rinku.auto_link(url), url
+    refute_equal Rinku.auto_link(url), url
   end
 
   def test_auto_link_with_single_trailing_punctuation_and_space

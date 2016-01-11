@@ -34,4 +34,5 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/rinku/extconf.rb"]
   s.require_paths = ["lib"]
   s.add_development_dependency("rake-compiler")
+  s.add_development_dependency("minitest")
 end
