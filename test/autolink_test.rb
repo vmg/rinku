@@ -291,6 +291,36 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
       ret = Rinku.auto_link str
       assert_equal str.encoding, ret.encoding
     end
+
+    def test_block_encoding
+      url = "http://example.com/х"
+      assert_equal "UTF-8", url.encoding.to_s
+
+      link = Rinku.auto_link(url) do |u|
+        assert_equal "UTF-8", u.encoding.to_s
+        u
+      end
+
+      assert_equal link.encoding.to_s, "UTF-8"
+
+      url = "http://www.bash.org"
+      url.encode! 'binary'
+
+      link = Rinku.auto_link(url) do |u|
+        assert_equal url.encoding.to_s, u.encoding.to_s
+        u
+      end
+
+      assert_equal url.encoding, link.encoding
+
+    end
+
+    def test_bad_encoding
+      url = "http://example.com/ümlaut".encode("UTF-16")
+      assert_raise ArgumentError do
+        Rinku.auto_link(url)
+      end
+    end
   end
 
   def generate_result(link_text, href = nil)
