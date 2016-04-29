@@ -190,6 +190,12 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "&lt;<a href=\"#{url}\">#{url}</a>&gt;", "&lt;#{url}&gt;"
   end
 
+  def test_does_not_include_nonbreaking_spaces
+    nbs = " " #non-breaking space - typed with option-space on OSX
+    url = "http://example.com/"
+    assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}", "#{url}#{nbs}"
+  end
+
   def test_links_with_anchors
     url = "https://github.com/github/hubot/blob/master/scripts/cream.js#L20-20"
     assert_linked "<a href=\"#{url}\">#{url}</a>", url
