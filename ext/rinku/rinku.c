@@ -135,7 +135,7 @@ html_is_tag(const uint8_t *tag_data, size_t tag_size, const char *tagname)
 	if (i == tag_size)
 		return HTML_TAG_NONE;
 
-	if (isspace(tag_data[i]) || tag_data[i] == '>')
+	if (isspace_helper(tag_data[i]) || tag_data[i] == '>')
 		return closed ? HTML_TAG_CLOSE : HTML_TAG_OPEN;
 
 	return HTML_TAG_NONE;
@@ -220,7 +220,7 @@ rinku_autolink(
 		link_text_cb = &autolink__print;
 
 	if (link_attr != NULL) {
-		while (isspace(*link_attr))
+		while (isspace_helper(*link_attr))
 			link_attr++;
 	}
 

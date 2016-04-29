@@ -30,6 +30,9 @@ enum {
 int
 sd_autolink_issafe(const uint8_t *link, size_t link_len);
 
+int
+isspace_helper(char data);
+
 size_t
 sd_autolink__www(size_t *rewind_p, struct buf *link,
 	uint8_t *data, size_t offset, size_t size, unsigned int flags);
