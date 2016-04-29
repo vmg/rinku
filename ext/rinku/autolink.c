@@ -301,8 +301,7 @@ sd_autolink__url(
 *  US keyboard with option-space.)
 */
 int
-isspace_helper(
-	char data)
+isspace_helper(char data)
 {
 	if (isspace(data) || data == ' ')
 		return 1;
