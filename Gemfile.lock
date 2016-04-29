@@ -1,0 +1,23 @@
+PATH
+  remote: .
+  specs:
+    rinku (1.7.3)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    minitest (5.8.4)
+    rake (11.1.2)
+    rake-compiler (0.9.8)
+      rake
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  minitest
+  rake-compiler
+  rinku!
+
+BUNDLED WITH
+   1.11.2
