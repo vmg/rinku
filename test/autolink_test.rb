@@ -193,7 +193,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
   def test_does_not_include_nonbreaking_spaces
     nbs = " " #non-breaking space - typed with option-space on OSX
     url = "http://example.com/"
-    assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}", "#{url}#{nbs}"
+    assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}and", "#{url}#{nbs}and"
   end
 
   def test_links_with_anchors
