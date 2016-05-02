@@ -319,3 +319,8 @@ int utf8proc_is_punctuation(int32_t uc) {
  * Returns 1 if c is an ascii punctuation character.
  */
 int rinku_ispunct(char c) { return rinku_ctype_class[(uint8_t)c] == 2; }
+
+/**
+ * Returns 1 if c is a "whitespace" character as defined by the spec.
+ */
+int rinku_isspace(char c) { return rinku_ctype_class[(uint8_t)c] == 1; }

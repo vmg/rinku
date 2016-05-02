@@ -16,6 +16,7 @@
 
 #include "buffer.h"
 #include "autolink.h"
+#include "utf8.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -169,7 +170,7 @@ sd_autolink__www(
 {
 	size_t link_end;
 
-	if (max_rewind > 0 && !ispunct(data[-1]) && !isspace_helper(data[-1]))
+	if (max_rewind > 0 && !ispunct(data[-1]) && !rinku_isspace(data[-1]))
 		return 0;
 
 	if (size < 4 || memcmp(data, "www.", strlen("www.")) != 0)
@@ -180,7 +181,7 @@ sd_autolink__www(
 	if (link_end == 0)
 		return 0;
 
-	while (link_end < size && !isspace_helper(data[link_end]))
+	while (link_end < size && !rinku_isspace(data[link_end]))
 		link_end++;
 
 	link_end = autolink_delim(data, link_end, max_rewind, size);
@@ -280,7 +281,7 @@ sd_autolink__url(
 		return 0;
 
 	link_end += domain_len;
-	while (link_end < size && !isspace_helper(data[link_end]))
+	while (link_end < size && !rinku_isspace(data[link_end]))
 		link_end++;
 
 	link_end = autolink_delim(data, link_end, max_rewind, size);
@@ -292,19 +293,4 @@ sd_autolink__url(
 	*rewind_p = rewind;
 
 	return link_end;
-}
-
-/* isspace will consider different sets of characters as whitespace depending on
-*  C locale. Usually this is fine, but the main problem character is a
-*  non-breaking space (Unicode: U+00A0). This abstracted helper method checks
-*  both isspace to be true OR for the data char to be a NBS (typed on an OSX
-*  US keyboard with option-space.)
-*/
-int
-isspace_helper(char data)
-{
-	if (isspace(data) || data == ' ')
-		return 1;
-
-	return 0;
 }
