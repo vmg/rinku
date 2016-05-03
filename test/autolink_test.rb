@@ -196,6 +196,11 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}and", "#{url}#{nbs}and"
   end
 
+  def test_handles_urls_with_emoji_properly
+    url = "http://foo.com/💖a"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
   def test_links_with_anchors
     url = "https://github.com/github/hubot/blob/master/scripts/cream.js#L20-20"
     assert_linked "<a href=\"#{url}\">#{url}</a>", url
