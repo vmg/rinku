@@ -198,7 +198,6 @@ rinku_autolink(
 	size_t i, end, last_link_found = 0;
 	struct buf *link = bufnew(16);
 	char active_chars[256];
-	void (*link_url_cb)(struct buf *, const struct buf *, void *);
 	int link_count = 0;
 
 	if (!text || size == 0)
