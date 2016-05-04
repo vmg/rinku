@@ -197,13 +197,12 @@ rinku_autolink(
 {
 	size_t i, end, last_link_found = 0;
 	struct buf *link = bufnew(16);
-	char active_chars[256];
+	char active_chars[256] = {0};
 	int link_count = 0;
 
 	if (!text || size == 0)
 		return 0;
 
-	memset(active_chars, 0x0, sizeof(active_chars));
 
 	active_chars['<'] = AUTOLINK_ACTION_SKIP_TAG;
 
