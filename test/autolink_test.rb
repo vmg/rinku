@@ -190,10 +190,26 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "&lt;<a href=\"#{url}\">#{url}</a>&gt;", "&lt;#{url}&gt;"
   end
 
-  def test_does_not_include_nonbreaking_spaces
+  def test_does_not_include_trailing_nonbreaking_spaces
     nbs = " " #non-breaking space - typed with option-space on OSX
     url = "http://example.com/"
     assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}and", "#{url}#{nbs}and"
+  end
+
+  def test_identifies_preceeding_nonbreaking_spaces
+    nbs = " " #non-breaking space - typed with option-space on OSX
+    url = "http://example.com/"
+    assert_linked "#{nbs}<a href=\"#{url}\">#{url}</a> and", "#{nbs}#{url} and"
+  end
+
+  def test_identifies_2_wide_UTF8_characters
+    url = "¥http://example.com/"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
+  def test_identifies_4_wide_UTF8_characters
+    url = "http://example.com/"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
   end
 
   def test_handles_urls_with_emoji_properly
