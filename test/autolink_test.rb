@@ -202,6 +202,16 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "#{nbs}<a href=\"#{url}\">#{url}</a> and", "#{nbs}#{url} and"
   end
 
+  def test_urls_with_2_wide_UTF8_characters
+    url = "http://example.com/?foo=¥&bar=1"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
+  def test_urls_with_4_wide_UTF8_characters
+    url = "http://example.com/?foo=&bar=1"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
   def test_handles_urls_with_emoji_properly
     url = "http://foo.com/💖a"
     assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
