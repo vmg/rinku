@@ -203,7 +203,7 @@ rinku_autolink(
 	if (!text || size == 0)
 		return 0;
 
-
+	/* assign special actions to certain characters in active_chars */
 	active_chars['<'] = AUTOLINK_ACTION_SKIP_TAG;
 
 	if (mode & AUTOLINK_EMAILS)
@@ -231,15 +231,29 @@ rinku_autolink(
 		size_t rewind, link_end;
 		char action = 0;
 
+		/* This part of the code doesn't need to be UTF-8 aware, since we only
+		 * really are detecting for the "special" characters what we need to
+		 * react to - W, w, @, or :
+		 */
+
+		/* count to the position of first action character */
 		while (end < size && (action = active_chars[text[end]]) == 0)
 			end++;
 
+		/* if we've reached the end of the buffer AND found a link, append
+		 * text + i to the end of it
+		 */
 		if (end == size) {
+			/* only write to a new output buffer if we've created a link, and
+			 * if we didn't find one, we will return the empty buffer
+			 * unmodified. This will save us an allocation on the Ruby heap
+			 */
 			if (link_count > 0)
 				bufput(ob, text + i, end - i);
 			break;
 		}
 
+		/* if we've found a '<', skip forward to the '>' and continue */
 		if (action == AUTOLINK_ACTION_SKIP_TAG) {
 			end += autolink__skip_tag(ob,
 				text + end, size - end, skip_tags);
@@ -249,6 +263,7 @@ rinku_autolink(
 
 		link->size = 0;
 
+		/* depending on action, call one of the autolink callbacks */
 		link_end = g_callbacks[(int)action](
 			&rewind, link, (uint8_t *)text + end,
 			end - last_link_found,

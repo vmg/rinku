@@ -170,6 +170,10 @@ sd_autolink__www(
 {
 	size_t link_end;
 
+	/* we need to have a function that rewinds to previous codepoints, by
+	 * checking the previous byte to see if its a 0-bit on the previous byte.
+	 * if its a 1, we need to go back, but no further than the max_rewind
+	 */
 	if (max_rewind > 0 && !ispunct(data[-1]) && !rinku_isspace(data[-1]))
 		return 0;
 
@@ -260,7 +264,7 @@ sd_autolink__url(
 	unsigned int flags)
 {
 	size_t link_end, rewind = 0, domain_len;
-
+	/* if the string is too short, or the next 2 characters are not `/`s */
 	if (size < 4 || data[1] != '/' || data[2] != '/')
 		return 0;
 

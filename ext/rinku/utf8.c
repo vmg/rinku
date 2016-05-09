@@ -114,10 +114,16 @@ int utf8proc_iterate(const uint8_t *str, bufsize_t str_len,
 
   switch (length) {
   case 1:
+    // 1-byte wide character, so just return it
     uc = str[0];
     break;
   case 2:
+    /* 2-bytes wide, so do some bitshift magic and add the value of the next
+     * byte in the string to find its "uc" (numerical representation?)
+     */
     uc = ((str[0] & 0x1F) << 6) + (str[1] & 0x3F);
+    /* if the uc is less than 128, there's a problem (since it's not supposed to
+     * be a 7-bit character?!) */
     if (uc < 0x80)
       uc = -1;
     break;
