@@ -254,6 +254,61 @@ sd_autolink__email(
 	return link_end;
 }
 
+int
+autolink_rewind_unless_isspace(
+	uint8_t *data,
+	size_t position,
+	size_t max_rewind,
+	int *rewind_steps)
+{
+	/* Rewind to find the next character by examining bytes */
+
+	/* set default value of rewind_steps, which will report how many steps
+	 * backwards we had to go to find the codepoint boundry */
+	*rewind_steps = 1;
+	uint8_t str = 0;
+	bufsize_t str_len = 0;
+	int32_t uc = -1;
+
+	if ((data[position] & 0xC0) != 0x80) {
+		/* ASCII, so use existing method for now */
+		return isalpha(data[position]);
+	}
+	else if ((data[position - 1] & 0xC0) != 0x80) {
+		/* 2-bytes wide */
+		str_len = 2;
+		*rewind_steps = 2;
+		uc = ((data[position - 1] & 0x1F) << 6) + (data[position] & 0x3F);
+
+		return !utf8proc_is_space(uc);
+	}
+	else if ((data[position - 2] & 0xC0) == 0x80) {
+		/* 3-bytes wide */
+		str_len = 3;
+		*rewind_steps = 3;
+		uc = ((data[position - 2] & 0x3F) << 12) +
+			((data[position - 1] & 0x3F) << 6) +
+			(data[position] & 0x3F);
+
+		return !utf8proc_is_space(uc);
+	}
+	else if ((data[position - 3] & 0xC0) == 0x80) {
+		/* 4-bytes wide */
+		str_len = 4;
+		*rewind_steps = 4;
+		uc = ((data[position - 3] & 0x07) << 18) +
+			((data[position - 2] & 0x3F) << 12) +
+			((data[position - 1] & 0x3F) << 6) +
+			(data[position] & 0x3F);
+
+		return !utf8proc_is_space(uc);
+	}
+
+	/* something weird is going on, return -1 */
+	return -1;
+}
+
+/* triggered on finding a ':' character in our text string */
 size_t
 sd_autolink__url(
 	size_t *rewind_p,
@@ -268,8 +323,11 @@ sd_autolink__url(
 	if (size < 4 || data[1] != '/' || data[2] != '/')
 		return 0;
 
-	while (rewind < max_rewind && isalpha(data[-rewind - 1]))
-		rewind++;
+	/* rewind to the first space character */
+	int rewind_steps = 0;
+
+	while (rewind < max_rewind && (autolink_rewind_unless_isspace(data, -rewind - 1, max_rewind, &rewind_steps)))
+		rewind = rewind + rewind_steps;
 
 	if (!sd_autolink_issafe(data - rewind, size + rewind))
 		return 0;
