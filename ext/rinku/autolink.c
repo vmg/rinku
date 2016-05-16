@@ -16,6 +16,7 @@
 
 #include "buffer.h"
 #include "autolink.h"
+#include "utf8.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -158,6 +159,64 @@ check_domain(uint8_t *data, size_t size, int allow_short)
 	}
 }
 
+int
+autolink_rewind_unless_isspace(
+	uint8_t *data,
+	size_t position,
+	size_t max_rewind,
+	int *rewind_steps)
+{
+	/* Rewind to find the next character by examining bytes */
+
+	/* set default value of rewind_steps, which will report how many steps
+	 * backwards we had to go to find the codepoint boundry */
+	*rewind_steps = 1;
+	uint8_t str = 0;
+	bufsize_t str_len = 0;
+	int32_t uc = -1;
+
+	if ((data[position] & 0xC0) != 0x80) {
+		/* ASCII, so use existing C functions for now */
+		if (isalnum(data[position]) ||
+			strchr(".+-_", data[position]) != NULL)
+			return 1;
+		return 0;
+	}
+	else if ((data[position - 1] & 0xC0) != 0x80) {
+		/* 2-bytes wide */
+		str_len = 2;
+		*rewind_steps = 2;
+		uc = ((data[position - 1] & 0x1F) << 6) + (data[position] & 0x3F);
+
+		return !utf8proc_is_space(uc);
+	}
+	else if ((data[position - 2] & 0xC0) == 0x80) {
+		/* 3-bytes wide */
+		str_len = 3;
+		*rewind_steps = 3;
+		uc = ((data[position - 2] & 0x3F) << 12) +
+			((data[position - 1] & 0x3F) << 6) +
+			(data[position] & 0x3F);
+
+		return !utf8proc_is_space(uc);
+	}
+	else if ((data[position - 3] & 0xC0) == 0x80) {
+		/* 4-bytes wide */
+		str_len = 4;
+		*rewind_steps = 4;
+		uc = ((data[position - 3] & 0x07) << 18) +
+			((data[position - 2] & 0x3F) << 12) +
+			((data[position - 1] & 0x3F) << 6) +
+			(data[position] & 0x3F);
+
+		return !utf8proc_is_space(uc);
+	}
+
+	/* something weird is going on, return -1 */
+	return -1;
+}
+
+/* triggered on finding a w' or 'W' character in our text string */
 size_t
 sd_autolink__www(
 	size_t *rewind_p,
@@ -168,8 +227,11 @@ sd_autolink__www(
 	unsigned int flags)
 {
 	size_t link_end;
+	int rewind_steps = 0;
 
-	if (max_rewind > 0 && !ispunct(data[-1]) && !isspace(data[-1]))
+	if (max_rewind > 0 &&
+		!ispunct(data[-1]) &&
+		autolink_rewind_unless_isspace(data, -1, max_rewind, &rewind_steps))
 		return 0;
 
 	if (size < 4 || memcmp(data, "www.", strlen("www.")) != 0)
@@ -180,7 +242,8 @@ sd_autolink__www(
 	if (link_end == 0)
 		return 0;
 
-	while (link_end < size && !isspace(data[link_end]))
+	/* find the position of the next space */
+	while (link_end < size && !rinku_isspace(data[link_end]))
 		link_end++;
 
 	link_end = autolink_delim(data, link_end, max_rewind, size);
@@ -194,6 +257,7 @@ sd_autolink__www(
 	return (int)link_end;
 }
 
+/* triggered on finding a '@' character in our text string */
 size_t
 sd_autolink__email(
 	size_t *rewind_p,
@@ -203,20 +267,16 @@ sd_autolink__email(
 	size_t size,
 	unsigned int flags)
 {
-	size_t link_end, rewind;
+	size_t link_end, rewind = 0;
 	int nb = 0, np = 0;
 
-	for (rewind = 0; rewind < max_rewind; ++rewind) {
-		uint8_t c = data[-rewind - 1];
+	/* rewind until we find a character that isn't an alphanumeric or
+	 * an acceptable email address character (., +, -, or _)
+	 */
 
-		if (isalnum(c))
-			continue;
-
-		if (strchr(".+-_", c) != NULL)
-			continue;
-
-		break;
-	}
+	int rewind_steps = 0;
+	while (rewind < max_rewind && (autolink_rewind_unless_isspace(data, -rewind - 1, max_rewind, &rewind_steps)))
+		rewind = rewind + rewind_steps;
 
 	if (rewind == 0)
 		return 0;
@@ -249,6 +309,7 @@ sd_autolink__email(
 	return link_end;
 }
 
+/* triggered on finding a ':' character in our text string */
 size_t
 sd_autolink__url(
 	size_t *rewind_p,
@@ -259,12 +320,15 @@ sd_autolink__url(
 	unsigned int flags)
 {
 	size_t link_end, rewind = 0, domain_len;
-
+	/* if the string is too short, or the next 2 characters are not `/`s */
 	if (size < 4 || data[1] != '/' || data[2] != '/')
 		return 0;
 
-	while (rewind < max_rewind && isalpha(data[-rewind - 1]))
-		rewind++;
+	/* rewind to the first space character */
+	int rewind_steps = 0;
+
+	while (rewind < max_rewind && (autolink_rewind_unless_isspace(data, -rewind - 1, max_rewind, &rewind_steps)))
+		rewind = rewind + rewind_steps;
 
 	if (!sd_autolink_issafe(data - rewind, size + rewind))
 		return 0;
@@ -279,8 +343,9 @@ sd_autolink__url(
 	if (domain_len == 0)
 		return 0;
 
+	/* find the position of the next space */
 	link_end += domain_len;
-	while (link_end < size && !isspace(data[link_end]))
+	while (link_end < size && !rinku_isspace(data[link_end]))
 		link_end++;
 
 	link_end = autolink_delim(data, link_end, max_rewind, size);

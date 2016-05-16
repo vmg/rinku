@@ -28,6 +28,7 @@
 
 #include "autolink.h"
 #include "buffer.h"
+#include "utf8.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -135,7 +136,7 @@ html_is_tag(const uint8_t *tag_data, size_t tag_size, const char *tagname)
 	if (i == tag_size)
 		return HTML_TAG_NONE;
 
-	if (isspace(tag_data[i]) || tag_data[i] == '>')
+	if (rinku_isspace(tag_data[i]) || tag_data[i] == '>')
 		return closed ? HTML_TAG_CLOSE : HTML_TAG_OPEN;
 
 	return HTML_TAG_NONE;
@@ -196,15 +197,13 @@ rinku_autolink(
 {
 	size_t i, end, last_link_found = 0;
 	struct buf *link = bufnew(16);
-	char active_chars[256];
-	void (*link_url_cb)(struct buf *, const struct buf *, void *);
+	char active_chars[256] = {0};
 	int link_count = 0;
 
 	if (!text || size == 0)
 		return 0;
 
-	memset(active_chars, 0x0, sizeof(active_chars));
-
+	/* assign special actions to certain characters in active_chars */
 	active_chars['<'] = AUTOLINK_ACTION_SKIP_TAG;
 
 	if (mode & AUTOLINK_EMAILS)
@@ -220,7 +219,7 @@ rinku_autolink(
 		link_text_cb = &autolink__print;
 
 	if (link_attr != NULL) {
-		while (isspace(*link_attr))
+		while (rinku_isspace(*link_attr))
 			link_attr++;
 	}
 
@@ -232,15 +231,29 @@ rinku_autolink(
 		size_t rewind, link_end;
 		char action = 0;
 
+		/* This part of the code doesn't need to be UTF-8 aware, since we only
+		 * really are detecting for the "special" characters what we need to
+		 * react to - W, w, @, or :
+		 */
+
+		/* count to the position of first action character */
 		while (end < size && (action = active_chars[text[end]]) == 0)
 			end++;
 
+		/* if we've reached the end of the buffer AND found a link, append
+		 * text + i to the end of it
+		 */
 		if (end == size) {
+			/* only write to a new output buffer if we've created a link, and
+			 * if we didn't find one, we will return the empty buffer
+			 * unmodified. This will save us an allocation on the Ruby heap
+			 */
 			if (link_count > 0)
 				bufput(ob, text + i, end - i);
 			break;
 		}
 
+		/* if we've found a '<', skip forward to the '>' and continue */
 		if (action == AUTOLINK_ACTION_SKIP_TAG) {
 			end += autolink__skip_tag(ob,
 				text + end, size - end, skip_tags);
@@ -250,6 +263,7 @@ rinku_autolink(
 
 		link->size = 0;
 
+		/* depending on action, call one of the autolink callbacks */
 		link_end = g_callbacks[(int)action](
 			&rewind, link, (uint8_t *)text + end,
 			end - last_link_found,
@@ -349,8 +363,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * HTML, Rinku is smart enough to skip the links that are already enclosed in `<a>`
  * tags.`
  *
- * -   `mode` is a symbol, either `:all`, `:urls` or `:email_addresses`, 
- * which specifies which kind of links will be auto-linked. 
+ * -   `mode` is a symbol, either `:all`, `:urls` or `:email_addresses`,
+ * which specifies which kind of links will be auto-linked.
  *
  * -   `link_attr` is a string containing the link attributes for each link that
  * will be generated. These attributes are not sanitized and will be include as-is
@@ -395,7 +409,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	ID mode_sym;
 
 	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode,
-		&rb_html, &rb_skip, &rb_flags, &rb_block); 
+		&rb_html, &rb_skip, &rb_flags, &rb_block);
 
 	Check_Type(rb_text, T_STRING);
 
@@ -468,4 +482,3 @@ void RUBY_EXPORT Init_rinku()
 	rb_define_method(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(SD_AUTOLINK_SHORT_DOMAINS));
 }
-
