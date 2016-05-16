@@ -242,6 +242,7 @@ sd_autolink__www(
 	if (link_end == 0)
 		return 0;
 
+	/* find the position of the next space */
 	while (link_end < size && !rinku_isspace(data[link_end]))
 		link_end++;
 
@@ -342,6 +343,7 @@ sd_autolink__url(
 	if (domain_len == 0)
 		return 0;
 
+	/* find the position of the next space */
 	link_end += domain_len;
 	while (link_end < size && !rinku_isspace(data[link_end]))
 		link_end++;
