@@ -227,12 +227,11 @@ sd_autolink__www(
 	unsigned int flags)
 {
 	size_t link_end;
+	int rewind_steps = 0;
 
-	/* we need to have a function that rewinds to previous codepoints, by
-	 * checking the previous byte to see if its a 0-bit on the previous byte.
-	 * if its a 1, we need to go back, but no further than the max_rewind
-	 */
-	if (max_rewind > 0 && !ispunct(data[-1]) && !rinku_isspace(data[-1]))
+	if (max_rewind > 0 &&
+		!ispunct(data[-1]) &&
+		autolink_rewind_unless_isspace(data, -1, max_rewind, &rewind_steps))
 		return 0;
 
 	if (size < 4 || memcmp(data, "www.", strlen("www.")) != 0)
