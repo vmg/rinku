@@ -216,6 +216,7 @@ autolink_rewind_unless_isspace(
 	return -1;
 }
 
+/* triggered on finding a w' or 'W' character in our text string */
 size_t
 sd_autolink__www(
 	size_t *rewind_p,
@@ -256,6 +257,7 @@ sd_autolink__www(
 	return (int)link_end;
 }
 
+/* triggered on finding a '@' character in our text string */
 size_t
 sd_autolink__email(
 	size_t *rewind_p,
