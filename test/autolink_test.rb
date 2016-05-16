@@ -197,8 +197,9 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
   end
 
   def test_identifies_preceeding_nonbreaking_spaces
-    nbs = " " #non-breaking space - typed with option-space on OSX
+    nbs = " " # non-breaking space - typed with option-space on OSX
     url = "http://example.com/"
+
     assert_linked "#{nbs}<a href=\"#{url}\">#{url}</a> and", "#{nbs}#{url} and"
   end
 
@@ -215,6 +216,13 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
   def test_handles_urls_with_emoji_properly
     url = "http://foo.com/💖a"
     assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
+  def test_identifies_nonbreaking_spaces_preceeding_emails
+    email_raw = 'david@loudthinking.com'
+    nbs = " " # non-breaking space - typed with option-space on OSX
+
+    assert_linked "email#{nbs}<a href=\"mailto:#{email_raw}\">#{email_raw}</a>", "email#{nbs}#{email_raw}"
   end
 
   def test_links_with_anchors

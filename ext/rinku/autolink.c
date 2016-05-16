@@ -208,20 +208,16 @@ sd_autolink__email(
 	size_t size,
 	unsigned int flags)
 {
-	size_t link_end, rewind;
+	size_t link_end, rewind = 0;
 	int nb = 0, np = 0;
 
-	for (rewind = 0; rewind < max_rewind; ++rewind) {
-		uint8_t c = data[-rewind - 1];
+	/* rewind until we find a character that isn't an alphanumeric or
+	 * an acceptable email address character (., +, -, or _)
+	 */
 
-		if (isalnum(c))
-			continue;
-
-		if (strchr(".+-_", c) != NULL)
-			continue;
-
-		break;
-	}
+	int rewind_steps = 0;
+	while (rewind < max_rewind && (autolink_rewind_unless_isspace(data, -rewind - 1, max_rewind, &rewind_steps)))
+		rewind = rewind + rewind_steps;
 
 	if (rewind == 0)
 		return 0;
@@ -271,8 +267,11 @@ autolink_rewind_unless_isspace(
 	int32_t uc = -1;
 
 	if ((data[position] & 0xC0) != 0x80) {
-		/* ASCII, so use existing method for now */
-		return isalpha(data[position]);
+		/* ASCII, so use existing C functions for now */
+		if (isalnum(data[position]) ||
+			strchr(".+-_", data[position]) != NULL)
+			return 1;
+		return 0;
 	}
 	else if ((data[position - 1] & 0xC0) != 0x80) {
 		/* 2-bytes wide */
