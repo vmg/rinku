@@ -18,8 +18,10 @@
 #include "autolink.h"
 
 #include <string.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <ctype.h>
 
 #if defined(_WIN32)
@@ -48,40 +50,40 @@ sd_autolink_issafe(const uint8_t *link, size_t link_len)
 	return 0;
 }
 
-static size_t
-autolink_delim(uint8_t *data, size_t link_end, size_t max_rewind, size_t size)
+static bool
+autolink_delim(const uint8_t *data, struct sd_link_pos *link)
 {
 	uint8_t cclose, copen = 0;
 	size_t i;
 
-	for (i = 0; i < link_end; ++i)
+	for (i = link->start; i < link->end; ++i)
 		if (data[i] == '<') {
-			link_end = i;
+			link->end = i;
 			break;
 		}
 
-	while (link_end > 0) {
-		if (strchr("?!.,:", data[link_end - 1]) != NULL)
-			link_end--;
+	while (link->end > link->start) {
+		if (strchr("?!.,:", data[link->end - 1]) != NULL)
+			link->end--;
 
-		else if (data[link_end - 1] == ';') {
-			size_t new_end = link_end - 2;
+		else if (data[link->end - 1] == ';') {
+			size_t new_end = link->end - 2;
 
 			while (new_end > 0 && isalpha(data[new_end]))
 				new_end--;
 
-			if (new_end < link_end - 2 && data[new_end] == '&')
-				link_end = new_end;
+			if (new_end < link->end - 2 && data[new_end] == '&')
+				link->end = new_end;
 			else
-				link_end--;
+				link->end--;
 		}
 		else break;
 	}
 
-	if (link_end == 0)
-		return 0;
+	if (link->end == link->start)
+		return false;
 
-	cclose = data[link_end - 1];
+	cclose = data[link->end - 1];
 
 	switch (cclose) {
 	case '"':	copen = '"'; break;
@@ -94,7 +96,7 @@ autolink_delim(uint8_t *data, size_t link_end, size_t max_rewind, size_t size)
 	if (copen != 0) {
 		size_t closing = 0;
 		size_t opening = 0;
-		size_t i = 0;
+		size_t i = link->start;
 
 		/* Try to close the final punctuation sign in this same line;
 		 * if we managed to close it outside of the URL, that means that it's
@@ -116,7 +118,7 @@ autolink_delim(uint8_t *data, size_t link_end, size_t max_rewind, size_t size)
 		 *		=> foo http://www.pokemon.com/Pikachu_(Electric)
 		 */
 
-		while (i < link_end) {
+		while (i < link->end) {
 			if (data[i] == copen)
 				opening++;
 			else if (data[i] == cclose)
@@ -126,88 +128,85 @@ autolink_delim(uint8_t *data, size_t link_end, size_t max_rewind, size_t size)
 		}
 
 		if (closing != opening)
-			link_end--;
+			link->end--;
 	}
 
-	return link_end;
+	return true;
 }
 
-static size_t
-check_domain(uint8_t *data, size_t size, int allow_short)
+static bool
+check_domain(const uint8_t *data, size_t size,
+		struct sd_link_pos *link, bool allow_short)
 {
 	size_t i, np = 0;
 
-	if (!isalnum(data[0]))
-		return 0;
+	if (!isalnum(data[link->start]))
+		return false;
 
-	for (i = 1; i < size - 1; ++i) {
+	for (i = link->start + 1; i < size - 1; ++i) {
 		if (data[i] == '.') np++;
 		else if (!isalnum(data[i]) && data[i] != '-') break;
 	}
+
+	link->end = i;
 
 	if (allow_short) {
 		/* We don't need a valid domain in the strict sense (with
 		 * least one dot; so just make sure it's composed of valid
 		 * domain characters and return the length of the the valid
 		 * sequence. */
-		return i;
+		return true;
 	} else {
 		/* a valid domain needs to have at least a dot.
 		 * that's as far as we get */
-		return np ? i : 0;
+		return (np > 0);
 	}
 }
 
-size_t
+bool
 sd_autolink__www(
-	size_t *rewind_p,
-	struct buf *link,
-	uint8_t *data,
-	size_t max_rewind,
+	struct sd_link_pos *link,
+	const uint8_t *data,
+	size_t pos,
 	size_t size,
 	unsigned int flags)
 {
-	size_t link_end;
+	if (pos > 0 && !ispunct(data[pos - 1]) && !isspace(data[pos - 1]))
+		return false;
 
-	if (max_rewind > 0 && !ispunct(data[-1]) && !isspace(data[-1]))
-		return 0;
+	if ((size - pos) < 4 || memcmp(data + pos, "www.", strlen("www.")) != 0)
+		return false;
 
-	if (size < 4 || memcmp(data, "www.", strlen("www.")) != 0)
-		return 0;
+	link->start = pos;
+	link->end = 0;
 
-	link_end = check_domain(data, size, 0);
+	if (!check_domain(data, size, link, false))
+		return false;
 
-	if (link_end == 0)
-		return 0;
+	while (link->end < size && !isspace(data[link->end]))
+		link->end++;
 
-	while (link_end < size && !isspace(data[link_end]))
-		link_end++;
+	if (!autolink_delim(data, link))
+		return false;
 
-	link_end = autolink_delim(data, link_end, max_rewind, size);
-
-	if (link_end == 0)
-		return 0;
-
-	bufput(link, data, link_end);
-	*rewind_p = 0;
-
-	return (int)link_end;
+	return true;
 }
 
-size_t
+bool
 sd_autolink__email(
-	size_t *rewind_p,
-	struct buf *link,
-	uint8_t *data,
-	size_t max_rewind,
+	struct sd_link_pos *link,
+	const uint8_t *data,
+	size_t pos,
 	size_t size,
 	unsigned int flags)
 {
-	size_t link_end, rewind;
 	int nb = 0, np = 0;
 
-	for (rewind = 0; rewind < max_rewind; ++rewind) {
-		uint8_t c = data[-rewind - 1];
+	link->start = pos;
+	link->end = pos;
+
+	for (; link->start > 0; link->start--) {
+		uint8_t c = data[link->start - 1];
 
 		if (isalnum(c))
 			continue;
@@ -218,78 +217,63 @@ sd_autolink__email(
 		break;
 	}
 
-	if (rewind == 0)
-		return 0;
+	if (link->start == pos)
+		return false;
 
-	for (link_end = 0; link_end < size; ++link_end) {
-		uint8_t c = data[link_end];
+	for (; link->end < size; link->end++) {
+		uint8_t c = data[link->end];
 
 		if (isalnum(c))
 			continue;
 
 		if (c == '@')
 			nb++;
-		else if (c == '.' && link_end < size - 1)
+		else if (c == '.' && link->end < size - 1)
 			np++;
 		else if (c != '-' && c != '_')
 			break;
 	}
 
-	if (link_end < 2 || nb != 1 || np == 0)
+	if ((link->end - pos) < 2 || nb != 1 || np == 0)
 		return 0;
 
-	link_end = autolink_delim(data, link_end, max_rewind, size);
+	if (!autolink_delim(data, link))
+		return false;
 
-	if (link_end == 0)
-		return 0;
-
-	bufput(link, data - rewind, link_end + rewind);
-	*rewind_p = rewind;
-
-	return link_end;
+	return true;
 }
 
-size_t
+bool
 sd_autolink__url(
-	size_t *rewind_p,
-	struct buf *link,
-	uint8_t *data,
-	size_t max_rewind,
+	struct sd_link_pos *link,
+	const uint8_t *data,
+	size_t pos,
 	size_t size,
 	unsigned int flags)
 {
-	size_t link_end, rewind = 0, domain_len;
+	assert(data[pos] == ':');
 
-	if (size < 4 || data[1] != '/' || data[2] != '/')
-		return 0;
+	if ((size - pos) < 4 || data[pos + 1] != '/' || data[pos + 2] != '/')
+		return false;
 
-	while (rewind < max_rewind && isalpha(data[-rewind - 1]))
-		rewind++;
+	link->start = pos + 3;
+	link->end = 0;
 
-	if (!sd_autolink_issafe(data - rewind, size + rewind))
-		return 0;
+	if (!check_domain(data, size, link, flags & SD_AUTOLINK_SHORT_DOMAINS))
+		return false;
 
-	link_end = strlen("://");
+	while (link->end < size && !isspace(data[link->end]))
+		link->end++;
 
-	domain_len = check_domain(
-		data + link_end,
-		size - link_end,
-		flags & SD_AUTOLINK_SHORT_DOMAINS);
+	link->start = pos;
+	while (link->start && isalpha(data[link->start - 1]))
+		link->start--;
 
-	if (domain_len == 0)
-		return 0;
+	if (!sd_autolink_issafe(data + link->start, size - link->start))
+		return false;
 
-	link_end += domain_len;
-	while (link_end < size && !isspace(data[link_end]))
-		link_end++;
+	if (!autolink_delim(data, link))
+		return false;
 
-	link_end = autolink_delim(data, link_end, max_rewind, size);
-
-	if (link_end == 0)
-		return 0;
-
-	bufput(link, data - rewind, link_end + rewind);
-	*rewind_p = rewind;
-
-	return link_end;
+	return true;
 }

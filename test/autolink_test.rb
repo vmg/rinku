@@ -16,7 +16,7 @@ class RedcarpetAutolinkTest < Minitest::Test
   end
 
   def test_segfault
-    Rinku.auto_link("a+b@d.com+e@f.com", mode=:all)
+    Rinku.auto_link("a+b@d.com+e@f.com", :all)
   end
 
   def test_escapes_quotes
@@ -227,7 +227,6 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     email2_result = %{<a href="mailto:#{email2_raw}">#{email2_raw}</a>}
     link_raw     = 'http://www.rubyonrails.com'
     link_result  = %{<a href="#{link_raw}">#{link_raw}</a>}
-    link_result_with_options  = %{<a href="#{link_raw}" target="_blank">#{link_raw}</a>}
     link2_raw    = 'www.rubyonrails.com'
     link2_result = %{<a href="http://#{link2_raw}">#{link2_raw}</a>}
     link3_raw    = 'http://manuals.ruby-on-rails.com/read/chapter.need_a-period/103#page281'
