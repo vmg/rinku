@@ -54,12 +54,6 @@ static const char *g_hrefs[] = {
 	"<a href=\"",
 };
 
-static void
-autolink__print(struct buf *ob, const uint8_t *url, size_t url_len, void *payload)
-{
-	bufput(ob, url, url_len);
-}
-
 /*
  * Rinku assumes valid HTML encoding for all input, but there's still
  * the case where a link can contain a double quote `"` that allows XSS.
@@ -159,7 +153,6 @@ autolink__skip_tag(
 			i++;
 	}
 
-//	bufput(ob, text, i + 1);
 	return i;
 }
 
@@ -176,13 +169,11 @@ rinku_autolink(
 	void *payload)
 {
 	size_t i, end;
-	char active_chars[256];
+	char active_chars[256] = {0};
 	int link_count = 0;
 
 	if (!text || size == 0)
 		return 0;
-
-	memset(active_chars, 0x0, sizeof(active_chars));
 
 	active_chars['<'] = AUTOLINK_ACTION_SKIP_TAG;
 
@@ -195,9 +186,6 @@ rinku_autolink(
 		active_chars[':'] = AUTOLINK_ACTION_URL;
 	}
 
-	if (link_text_cb == NULL)
-		link_text_cb = &autolink__print;
-
 	if (link_attr != NULL) {
 		while (rinku_isspace(*link_attr))
 			link_attr++;
@@ -209,6 +197,7 @@ rinku_autolink(
 
 	while (i < size) {
 		struct autolink_pos link;
+		bool link_found;
 		char action = 0;
 
 		while (end < size && (action = active_chars[text[end]]) == 0)
@@ -226,11 +215,16 @@ rinku_autolink(
 			continue;
 		}
 
-		if (g_callbacks[(int)action](&link, text, end, size, flags) &&
-			link.start >= i) {
+		link_found = g_callbacks[(int)action](
+			&link, text, end, size, flags);
+
+		if (link_found && link.start >= i) {
+			const uint8_t *link_str = text + link.start;
+			const size_t link_len = link.end - link.start;
+
 			bufput(ob, text + i, link.start - i);
 			bufputs(ob, g_hrefs[(int)action]);
-			print_link(ob, text + link.start, link.end - link.start);
+			print_link(ob, link_str, link_len);
 
 			if (link_attr) {
 				BUFPUTSL(ob, "\" ");
@@ -240,10 +234,11 @@ rinku_autolink(
 				BUFPUTSL(ob, "\">");
 			}
 
-			link_text_cb(ob,
-				text + link.start,
-				link.end - link.start,
-				payload);
+			if (link_text_cb) {
+				link_text_cb(ob, link_str, link_len, payload);
+			} else {
+				bufput(ob, link_str, link_len);
+			}
 
 			BUFPUTSL(ob, "</a>");
 
@@ -256,21 +251,3 @@ rinku_autolink(
 
 	return link_count;
 }
-
-#ifdef RINKU_TEST
-int main(int argc, char *argv[])
-{
-	//static const char *SKIP_TAGS[] = {"a", "pre", "code", "kbd", "script", NULL};
-	static const char *SKIP_TAGS[] = {"a", "divas", NULL};
-	static const char text[] = "http://example.com/";
-
-	struct buf *ob = bufnew(4096);
-
-	rinku_autolink(ob, text, strlen(text), AUTOLINK_ALL, 0, NULL,
-		SKIP_TAGS, NULL, NULL);
-
-	printf("%.*s\n", (int)ob->size, (char *)ob->data);
-	return 0;
-}
-#endif
-
