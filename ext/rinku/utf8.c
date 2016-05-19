@@ -49,14 +49,8 @@ static const int8_t utf8proc_utf8class[256] = {
     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
     4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0};
 
-int32_t utf8proc_next(const uint8_t *str, size_t *pos)
+static int32_t read_cp(const uint8_t *str, int8_t length)
 {
-	int8_t length;
-
-	str = &str[*pos];
-	length = utf8proc_utf8class[str[0]];
-	(*pos) += length;
-
 	switch (length) {
 	case 1:
 		return str[0];
@@ -68,9 +62,17 @@ int32_t utf8proc_next(const uint8_t *str, size_t *pos)
 	case 4:
 		return ((str[0] & 0x07) << 18) + ((str[1] & 0x3F) << 12) +
 			((str[2] & 0x3F) << 6) + (str[3] & 0x3F);
+	default:
+		return 0xFFFD; // replacement character
 	}
+}
 
-	return 0;
+int32_t utf8proc_next(const uint8_t *str, size_t *pos)
+{
+	const size_t p = *pos;
+	const int8_t length = utf8proc_utf8class[str[p]];
+	(*pos) += length;
+	return read_cp(str + p, length);
 }
 
 size_t utf8proc_find_space(const uint8_t *str, size_t pos, size_t size)
@@ -84,10 +86,9 @@ size_t utf8proc_find_space(const uint8_t *str, size_t pos, size_t size)
 	return size;
 }
 
-int32_t
-utf8proc_rewind(const uint8_t *data, size_t pos)
+int32_t utf8proc_rewind(const uint8_t *data, size_t pos)
 {
-	int32_t uc;
+	int8_t length = 0;
 
 	if (!pos)
 		return 0x0;
@@ -95,33 +96,14 @@ utf8proc_rewind(const uint8_t *data, size_t pos)
 	if ((data[pos - 1] & 0xC0) == 0x0)
 		return data[pos - 1];
 
-	if (pos > 1 && utf8proc_utf8class[data[pos - 2]] == 2) {
-		data = &data[pos - 2];
-		uc = ((data[0] & 0x1F) << 6) + (data[1] & 0x3F);
-		return (uc < 0x80) ? -1 : uc;
-	}
+	if (pos > 1 && utf8proc_utf8class[data[pos - 2]] == 2)
+		length = 2;
+	else if (pos > 2 && utf8proc_utf8class[data[pos - 3]] == 3)
+		length = 3;
+	else if (pos > 3 && utf8proc_utf8class[data[pos - 4]] == 4)
+		length = 4;
 
-	if (pos > 2 && utf8proc_utf8class[data[pos - 3]] == 3) {
-		data = &data[pos - 3];
-		uc = ((data[0] & 0x0F) << 12) + ((data[1] & 0x3F) << 6) +
-			(data[2] & 0x3F);
-
-		if (uc < 0x800 || (uc >= 0xD800 && uc < 0xE000))
-			return -1;
-		return uc;
-	}
-
-	if (pos > 3 && utf8proc_utf8class[data[pos - 4]] == 4) {
-		data = &data[pos - 4];
-		uc = ((data[0] & 0x07) << 18) + ((data[1] & 0x3F) << 12) +
-			((data[2] & 0x3F) << 6) + (data[3] & 0x3F);
-
-		if (uc < 0x10000 || uc >= 0x110000)
-			return -1;
-		return uc;
-	}
-
-	return -1;
+	return read_cp(&data[pos - length], length);
 }
 
 bool utf8proc_is_space(int32_t uc)
