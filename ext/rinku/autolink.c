@@ -22,6 +22,7 @@
 
 #include "buffer.h"
 #include "autolink.h"
+#include "utf8.h"
 
 #if defined(_WIN32)
 #define strncasecmp	_strnicmp
@@ -42,7 +43,7 @@ autolink_issafe(const uint8_t *link, size_t link_len)
 
 		if (link_len > len &&
 			strncasecmp((char *)link, valid_uris[i], len) == 0 &&
-			isalnum(link[len]))
+			rinku_isalnum(link[len]))
 			return true;
 	}
 
@@ -68,7 +69,7 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 		else if (data[link->end - 1] == ';') {
 			size_t new_end = link->end - 2;
 
-			while (new_end > 0 && isalpha(data[new_end]))
+			while (new_end > 0 && rinku_isalpha(data[new_end]))
 				new_end--;
 
 			if (new_end < link->end - 2 && data[new_end] == '&')
@@ -139,12 +140,12 @@ check_domain(const uint8_t *data, size_t size,
 {
 	size_t i, np = 0;
 
-	if (!isalnum(data[link->start]))
+	if (!rinku_isalnum(data[link->start]))
 		return false;
 
 	for (i = link->start + 1; i < size - 1; ++i) {
 		if (data[i] == '.') np++;
-		else if (!isalnum(data[i]) && data[i] != '-') break;
+		else if (!rinku_isalnum(data[i]) && data[i] != '-') break;
 	}
 
 	link->end = i;
@@ -170,11 +171,15 @@ autolink__www(
 	size_t size,
 	unsigned int flags)
 {
-	if (pos > 0 && !ispunct(data[pos - 1]) && !isspace(data[pos - 1]))
+	if ((size - pos) < 4 ||
+		data[pos + 1] != 'w' ||
+		data[pos + 2] != 'w' ||
+		data[pos + 3] != '.')
 		return false;
 
-	if ((size - pos) < 4 ||
-		memcmp(data + pos, "www.", strlen("www.")) != 0)
+	if (pos > 0 &&
+		!rinku_ispunct(data[pos - 1]) &&
+		!rinku_isspace(data[pos - 1]))
 		return false;
 
 	link->start = pos;
@@ -183,7 +188,7 @@ autolink__www(
 	if (!check_domain(data, size, link, false))
 		return false;
 
-	while (link->end < size && !isspace(data[link->end]))
+	while (link->end < size && !rinku_isspace(data[link->end]))
 		link->end++;
 
 	return autolink_delim(data, link);
@@ -205,10 +210,10 @@ autolink__email(
 	for (; link->start > 0; link->start--) {
 		uint8_t c = data[link->start - 1];
 
-		if (isalnum(c))
+		if (rinku_isalnum(c))
 			continue;
 
-		if (strchr(".+-_", c) != NULL)
+		if (strchr(".+-_%", c) != NULL)
 			continue;
 
 		break;
@@ -220,7 +225,7 @@ autolink__email(
 	for (; link->end < size; link->end++) {
 		uint8_t c = data[link->end];
 
-		if (isalnum(c))
+		if (rinku_isalnum(c))
 			continue;
 
 		if (c == '@')
@@ -256,11 +261,11 @@ autolink__url(
 	if (!check_domain(data, size, link, flags & AUTOLINK_SHORT_DOMAINS))
 		return false;
 
-	while (link->end < size && !isspace(data[link->end]))
+	while (link->end < size && !rinku_isspace(data[link->end]))
 		link->end++;
 
 	link->start = pos;
-	while (link->start && isalpha(data[link->start - 1]))
+	while (link->start && rinku_isalpha(data[link->start - 1]))
 		link->start--;
 
 	if (!autolink_issafe(data + link->start, size - link->start))
