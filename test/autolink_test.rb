@@ -7,9 +7,12 @@ require 'cgi'
 require 'uri'
 require 'rinku'
 
-class RedcarpetAutolinkTest < Minitest::Test
-
-  SAFE_CHARS = "{}[]~'"
+class RinkuAutoLinkTest < Minitest::Test
+  def generate_result(link_text, href = nil)
+    href ||= link_text
+    href = "http://" + href unless href =~ %r{\A\w+://}
+    %{<a href="#{CGI.escapeHTML href}">#{CGI.escapeHTML link_text}</a>}
+  end
 
   def assert_linked(expected, url)
     assert_equal expected, Rinku.auto_link(url)
@@ -283,23 +286,16 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked '<a href="http://www.rubyonrails.com">Ruby On Rails</a>', '<a href="http://www.rubyonrails.com">Ruby On Rails</a>'
   end
 
-  if "".respond_to?(:force_encoding)
-    def test_copies_source_encoding
-      str = "http://www.bash.org"
+  def test_copies_source_encoding
+    str = "http://www.bash.org"
 
-      ret = Rinku.auto_link str
-      assert_equal str.encoding, ret.encoding
+    ret = Rinku.auto_link str
+    assert_equal str.encoding, ret.encoding
 
-      str.encode! 'binary'
+    str.encode! 'binary'
 
-      ret = Rinku.auto_link str
-      assert_equal str.encoding, ret.encoding
-    end
-  end
-
-  def generate_result(link_text, href = nil)
-    href ||= link_text
-    %{<a href="#{CGI.escapeHTML href}">#{CGI.escapeHTML link_text}</a>}
+    ret = Rinku.auto_link str
+    assert_equal str.encoding, ret.encoding
   end
 
   def test_valid_encodings_are_generated
@@ -329,22 +325,22 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     end
   end
 
+  NBSP = "\xC2\xA0".freeze
+
   def test_the_famous_nbsp
-    input = "at http://google.com/\xC2\xA0;"
-    expected = "at <a href=\"http://google.com/\">http://google.com/</a>\xC2\xA0;"
+    input = "at http://google.com/#{NBSP};"
+    expected = "at <a href=\"http://google.com/\">http://google.com/</a>#{NBSP};"
     assert_linked expected, input
   end
 
   def test_does_not_include_trailing_nonbreaking_spaces
-    nbs = "\xC2\xA0"
     url = "http://example.com/"
-    assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}and", "#{url}#{nbs}and"
+    assert_linked "<a href=\"#{url}\">#{url}</a>#{NBSP}and", "#{url}#{NBSP}and"
   end
 
   def test_identifies_preceeding_nonbreaking_spaces
-    nbs = "\xC2\xA0"
     url = "http://example.com/"
-    assert_linked "#{nbs}<a href=\"#{url}\">#{url}</a> and", "#{nbs}#{url} and"
+    assert_linked "#{NBSP}<a href=\"#{url}\">#{url}</a> and", "#{NBSP}#{url} and"
   end
 
   def test_urls_with_2_wide_UTF8_characters
@@ -364,7 +360,20 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
 
   def test_identifies_nonbreaking_spaces_preceeding_emails
     email_raw = 'david@loudthinking.com'
-    nbs = "\xC2\xA0"
-    assert_linked "email#{nbs}<a href=\"mailto:#{email_raw}\">#{email_raw}</a>", "email#{nbs}#{email_raw}"
+    assert_linked "email#{NBSP}<a href=\"mailto:#{email_raw}\">#{email_raw}</a>", "email#{NBSP}#{email_raw}"
+  end
+
+  def test_www_is_case_insensitive
+    url = "www.reddit.com"
+    assert_linked generate_result(url), url
+
+    url = "WWW.REDDIT.COM"
+    assert_linked generate_result(url), url
+
+    url = "Www.reddit.Com"
+    assert_linked generate_result(url), url
+
+    url = "WwW.reddit.CoM"
+    assert_linked generate_result(url), url
   end
 end

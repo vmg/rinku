@@ -177,10 +177,11 @@ autolink__www(
 	unsigned int flags)
 {
 	int32_t boundary;
+	assert(data[pos] == 'w' || data[pos] == 'W');
 
 	if ((size - pos) < 4 ||
-		data[pos + 1] != 'w' ||
-		data[pos + 2] != 'w' ||
+		(data[pos + 1] != 'w' && data[pos + 1] != 'W') ||
+		(data[pos + 2] != 'w' && data[pos + 2] != 'W') ||
 		data[pos + 3] != '.')
 		return false;
 
@@ -209,6 +210,7 @@ autolink__email(
 	unsigned int flags)
 {
 	int nb = 0, np = 0;
+	assert(data[pos] == '@');
 
 	link->start = pos;
 	link->end = pos;
