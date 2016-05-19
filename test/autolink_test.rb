@@ -334,4 +334,37 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     expected = "at <a href=\"http://google.com/\">http://google.com/</a>\xC2\xA0;"
     assert_linked expected, input
   end
+
+  def test_does_not_include_trailing_nonbreaking_spaces
+    nbs = "\xC2\xA0"
+    url = "http://example.com/"
+    assert_linked "<a href=\"#{url}\">#{url}</a>#{nbs}and", "#{url}#{nbs}and"
+  end
+
+  def test_identifies_preceeding_nonbreaking_spaces
+    nbs = "\xC2\xA0"
+    url = "http://example.com/"
+    assert_linked "#{nbs}<a href=\"#{url}\">#{url}</a> and", "#{nbs}#{url} and"
+  end
+
+  def test_urls_with_2_wide_UTF8_characters
+    url = "http://example.com/?foo=¥&bar=1"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
+  def test_urls_with_4_wide_UTF8_characters
+    url = "http://example.com/?foo=&bar=1"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
+  def test_handles_urls_with_emoji_properly
+    url = "http://foo.com/💖a"
+    assert_linked "<a href=\"#{url}\">#{url}</a> and", "#{url} and"
+  end
+
+  def test_identifies_nonbreaking_spaces_preceeding_emails
+    email_raw = 'david@loudthinking.com'
+    nbs = "\xC2\xA0"
+    assert_linked "email#{nbs}<a href=\"mailto:#{email_raw}\">#{email_raw}</a>", "email#{nbs}#{email_raw}"
+  end
 end
