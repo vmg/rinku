@@ -26,5 +26,9 @@ bool rinku_isalpha(char c);
 bool rinku_isalnum(char c);
 
 int32_t utf8proc_rewind(const uint8_t *data, size_t pos);
+size_t utf8proc_find_space(const uint8_t *str, size_t pos, size_t size);
+
+bool utf8proc_is_space(int32_t uc);
+bool utf8proc_is_punctuation(int32_t uc);
 
 #endif

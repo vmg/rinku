@@ -177,15 +177,18 @@ autolink__www(
 	size_t size,
 	unsigned int flags)
 {
+	int32_t boundary;
+
 	if ((size - pos) < 4 ||
 		data[pos + 1] != 'w' ||
 		data[pos + 2] != 'w' ||
 		data[pos + 3] != '.')
 		return false;
 
-	if (pos > 0 &&
-		!rinku_ispunct(data[pos - 1]) &&
-		!rinku_isspace(data[pos - 1]))
+	boundary = utf8proc_rewind(data, pos);
+	if (boundary &&
+		!utf8proc_is_space(boundary) &&
+		!utf8proc_is_punctuation(boundary))
 		return false;
 
 	link->start = pos;
@@ -194,9 +197,7 @@ autolink__www(
 	if (!check_domain(data, size, link, false))
 		return false;
 
-	while (link->end < size && !rinku_isspace(data[link->end]))
-		link->end++;
-
+	link->end = utf8proc_find_space(data, link->end, size);
 	return autolink_delim(data, link);
 }
 
@@ -267,10 +268,9 @@ autolink__url(
 	if (!check_domain(data, size, link, flags & AUTOLINK_SHORT_DOMAINS))
 		return false;
 
-	while (link->end < size && !rinku_isspace(data[link->end]))
-		link->end++;
-
 	link->start = pos;
+	link->end = utf8proc_find_space(data, link->end, size);
+
 	while (link->start && rinku_isalpha(data[link->start - 1]))
 		link->start--;
 
