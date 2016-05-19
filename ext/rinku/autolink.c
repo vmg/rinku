@@ -69,13 +69,19 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 		else if (data[link->end - 1] == ';') {
 			size_t new_end = link->end - 2;
 
-			while (new_end > 0 && rinku_isalpha(data[new_end]))
+			while (new_end > 0 && rinku_isalnum(data[new_end]))
 				new_end--;
 
-			if (new_end < link->end - 2 && data[new_end] == '&')
-				link->end = new_end;
-			else
-				link->end--;
+			if (new_end < link->end - 2) {
+				if (new_end > 0 && data[new_end] == '#')
+					new_end--;
+
+				if (data[new_end] == '&') {
+					link->end = new_end;
+					continue;
+				}
+			}
+			link->end--;
 		}
 		else break;
 	}
