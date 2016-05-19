@@ -25,14 +25,43 @@
 
 static VALUE rb_mRinku;
 
+struct callback_data {
+	VALUE rb_block;
+	rb_encoding *encoding;
+};
+
+static rb_encoding *
+validate_encoding(VALUE rb_str)
+{
+	rb_encoding *encoding;
+
+	Check_Type(rb_str, T_STRING);
+	encoding = rb_enc_get(rb_str);
+
+	if (!rb_enc_asciicompat(encoding))
+		rb_raise(rb_eArgError, "Invalid encoding");
+
+	if (rb_enc_str_coderange(rb_str) == ENC_CODERANGE_BROKEN)
+	    rb_raise(rb_eArgError, "invalid byte sequence in %s",
+			rb_enc_name(encoding));
+
+	return encoding;
+}
+
 static void
 autolink_callback(struct buf *link_text,
 		const uint8_t *url, size_t url_len, void *block)
 {
+	struct callback_data *data = block;
 	VALUE rb_link, rb_link_text;
-	rb_link = rb_str_new((const char *)url, url_len);
-	rb_link_text = rb_funcall((VALUE)block, rb_intern("call"), 1, rb_link);
-	Check_Type(rb_link_text, T_STRING);
+
+	rb_link = rb_enc_str_new((const char *)url, url_len, data->encoding);
+	rb_link_text = rb_funcall(data->rb_block,
+			rb_intern("call"), 1, rb_link);
+
+	if (validate_encoding(rb_link_text) != data->encoding)
+		rb_raise(rb_eArgError, "encoding mismatch");
+
 	bufput(link_text, RSTRING_PTR(rb_link_text), RSTRING_LEN(rb_link_text));
 }
 
@@ -124,28 +153,44 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	static const char *SKIP_TAGS[] = {"a", "pre", "code", "kbd", "script", NULL};
 
 	VALUE result, rb_text, rb_mode, rb_html, rb_skip, rb_flags, rb_block;
+	rb_encoding *text_encoding;
 	struct buf *output_buf;
-	int link_mode, count;
+	int link_mode = AUTOLINK_ALL, count;
 	unsigned int link_flags = 0;
 	const char *link_attr = NULL;
 	const char **skip_tags = NULL;
-	ID mode_sym;
+	struct callback_data cbdata;
 
 	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode,
 		&rb_html, &rb_skip, &rb_flags, &rb_block); 
 
-	Check_Type(rb_text, T_STRING);
+	text_encoding = validate_encoding(rb_text);
 
 	if (!NIL_P(rb_mode)) {
+		ID mode_sym;
 		Check_Type(rb_mode, T_SYMBOL);
+
 		mode_sym = SYM2ID(rb_mode);
-	} else {
-		mode_sym = rb_intern("all");
+		if (mode_sym == rb_intern("all"))
+			link_mode = AUTOLINK_ALL;
+		else if (mode_sym == rb_intern("email_addresses"))
+			link_mode = AUTOLINK_EMAILS;
+		else if (mode_sym == rb_intern("urls"))
+			link_mode = AUTOLINK_URLS;
+		else
+			rb_raise(rb_eTypeError,
+				"Invalid linking mode "
+				"(possible values are :all, :urls, :email_addresses)");
 	}
 
 	if (!NIL_P(rb_html)) {
 		Check_Type(rb_html, T_STRING);
 		link_attr = RSTRING_PTR(rb_html);
+	}
+
+	if (!NIL_P(rb_flags)) {
+		Check_Type(rb_flags, T_FIXNUM);
+		link_flags = FIX2INT(rb_flags);
 	}
 
 	if (NIL_P(rb_skip))
@@ -157,23 +202,9 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		skip_tags = rinku_load_tags(rb_skip);
 	}
 
-	if (!NIL_P(rb_flags)) {
-		Check_Type(rb_flags, T_FIXNUM);
-		link_flags = FIX2INT(rb_flags);
-	}
-
 	output_buf = bufnew(32);
-
-	if (mode_sym == rb_intern("all"))
-		link_mode = AUTOLINK_ALL;
-	else if (mode_sym == rb_intern("email_addresses"))
-		link_mode = AUTOLINK_EMAILS;
-	else if (mode_sym == rb_intern("urls"))
-		link_mode = AUTOLINK_URLS;
-	else
-		rb_raise(rb_eTypeError,
-			"Invalid linking mode (possible values are :all, :urls, :email_addresses)");
-
+	cbdata.rb_block = rb_block;
+	cbdata.encoding = text_encoding;
 	count = rinku_autolink(
 		output_buf,
 		(const uint8_t *)RSTRING_PTR(rb_text),
@@ -183,13 +214,13 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 		link_attr,
 		skip_tags,
 		RTEST(rb_block) ? &autolink_callback : NULL,
-		(void*)rb_block);
+		(void*)&cbdata);
 
 	if (count == 0)
 		result = rb_text;
 	else {
-		result = rb_str_new((char *)output_buf->data, output_buf->size);
-		rb_enc_copy(result, rb_text);
+		result = rb_enc_str_new((char *)output_buf->data, output_buf->size,
+			text_encoding);
 	}
 
 	if (skip_tags != SKIP_TAGS)
