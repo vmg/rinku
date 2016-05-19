@@ -203,6 +203,6 @@ void RUBY_EXPORT Init_rinku()
 {
 	rb_mRinku = rb_define_module("Rinku");
 	rb_define_module_function(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
-	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(SD_AUTOLINK_SHORT_DOMAINS));
+	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(AUTOLINK_SHORT_DOMAINS));
 }
 

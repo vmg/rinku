@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Vicent Marti
+ * Copyright (c) 2016, GitHub, Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,10 +13,6 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
-#include "buffer.h"
-#include "autolink.h"
-
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -24,12 +20,15 @@
 #include <stdbool.h>
 #include <ctype.h>
 
+#include "buffer.h"
+#include "autolink.h"
+
 #if defined(_WIN32)
 #define strncasecmp	_strnicmp
 #endif
 
-int
-sd_autolink_issafe(const uint8_t *link, size_t link_len)
+bool
+autolink_issafe(const uint8_t *link, size_t link_len)
 {
 	static const size_t valid_uris_count = 5;
 	static const char *valid_uris[] = {
@@ -44,14 +43,14 @@ sd_autolink_issafe(const uint8_t *link, size_t link_len)
 		if (link_len > len &&
 			strncasecmp((char *)link, valid_uris[i], len) == 0 &&
 			isalnum(link[len]))
-			return 1;
+			return true;
 	}
 
-	return 0;
+	return false;
 }
 
 static bool
-autolink_delim(const uint8_t *data, struct sd_link_pos *link)
+autolink_delim(const uint8_t *data, struct autolink_pos *link)
 {
 	uint8_t cclose, copen = 0;
 	size_t i;
@@ -136,7 +135,7 @@ autolink_delim(const uint8_t *data, struct sd_link_pos *link)
 
 static bool
 check_domain(const uint8_t *data, size_t size,
-		struct sd_link_pos *link, bool allow_short)
+		struct autolink_pos *link, bool allow_short)
 {
 	size_t i, np = 0;
 
@@ -164,8 +163,8 @@ check_domain(const uint8_t *data, size_t size,
 }
 
 bool
-sd_autolink__www(
-	struct sd_link_pos *link,
+autolink__www(
+	struct autolink_pos *link,
 	const uint8_t *data,
 	size_t pos,
 	size_t size,
@@ -174,7 +173,8 @@ sd_autolink__www(
 	if (pos > 0 && !ispunct(data[pos - 1]) && !isspace(data[pos - 1]))
 		return false;
 
-	if ((size - pos) < 4 || memcmp(data + pos, "www.", strlen("www.")) != 0)
+	if ((size - pos) < 4 ||
+		memcmp(data + pos, "www.", strlen("www.")) != 0)
 		return false;
 
 	link->start = pos;
@@ -186,15 +186,12 @@ sd_autolink__www(
 	while (link->end < size && !isspace(data[link->end]))
 		link->end++;
 
-	if (!autolink_delim(data, link))
-		return false;
-
-	return true;
+	return autolink_delim(data, link);
 }
 
 bool
-sd_autolink__email(
-	struct sd_link_pos *link,
+autolink__email(
+	struct autolink_pos *link,
 	const uint8_t *data,
 	size_t pos,
 	size_t size,
@@ -235,17 +232,14 @@ sd_autolink__email(
 	}
 
 	if ((link->end - pos) < 2 || nb != 1 || np == 0)
-		return 0;
-
-	if (!autolink_delim(data, link))
 		return false;
 
-	return true;
+	return autolink_delim(data, link);
 }
 
 bool
-sd_autolink__url(
-	struct sd_link_pos *link,
+autolink__url(
+	struct autolink_pos *link,
 	const uint8_t *data,
 	size_t pos,
 	size_t size,
@@ -259,7 +253,7 @@ sd_autolink__url(
 	link->start = pos + 3;
 	link->end = 0;
 
-	if (!check_domain(data, size, link, flags & SD_AUTOLINK_SHORT_DOMAINS))
+	if (!check_domain(data, size, link, flags & AUTOLINK_SHORT_DOMAINS))
 		return false;
 
 	while (link->end < size && !isspace(data[link->end]))
@@ -269,11 +263,8 @@ sd_autolink__url(
 	while (link->start && isalpha(data[link->start - 1]))
 		link->start--;
 
-	if (!sd_autolink_issafe(data + link->start, size - link->start))
+	if (!autolink_issafe(data + link->start, size - link->start))
 		return false;
 
-	if (!autolink_delim(data, link))
-		return false;
-
-	return true;
+	return autolink_delim(data, link);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Vicent Marti
+ * Copyright (c) 2016, GitHub, Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,13 +38,13 @@ typedef enum {
 } autolink_action;
 
 typedef bool (*autolink_parse_cb)(
-	struct sd_link_pos *, const uint8_t *, size_t, size_t, unsigned int);
+	struct autolink_pos *, const uint8_t *, size_t, size_t, unsigned int);
 
 static autolink_parse_cb g_callbacks[] = {
 	NULL,
-	sd_autolink__www,	/* 1 */
-	sd_autolink__email,/* 2 */
-	sd_autolink__url,	/* 3 */
+	autolink__www,	/* 1 */
+	autolink__email,/* 2 */
+	autolink__url,	/* 3 */
 };
 
 static const char *g_hrefs[] = {
@@ -175,7 +175,6 @@ rinku_autolink(
 	void (*link_text_cb)(struct buf *, const uint8_t *, size_t, void *),
 	void *payload)
 {
-	struct sd_link_pos link;
 	size_t i, end;
 	char active_chars[256];
 	int link_count = 0;
@@ -209,6 +208,7 @@ rinku_autolink(
 	i = end = 0;
 
 	while (i < size) {
+		struct autolink_pos link;
 		char action = 0;
 
 		while (end < size && (action = active_chars[text[end]]) == 0)
