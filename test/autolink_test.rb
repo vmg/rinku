@@ -302,4 +302,36 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     %{<a href="#{CGI.escapeHTML href}">#{CGI.escapeHTML link_text}</a>}
   end
 
+  def test_valid_encodings_are_generated
+    str = "&lt;a href=&#39;http://gi.co&#39;&gt;gi.co&lt;/a&gt;\xC2\xA0r"
+    assert_equal Encoding::UTF_8, str.encoding
+
+    res = Rinku.auto_link(str)
+    assert_equal Encoding::UTF_8, res.encoding
+    assert res.valid_encoding?
+  end
+
+  def test_polish_wikipedia_haha
+    url = "https://pl.wikipedia.org/wiki/Komisja_śledcza_do_zbadania_sprawy_zarzutu_nielegalnego_wywierania_wpływu_na_funkcjonariuszy_policji,_służb_specjalnych,_prokuratorów_i_osoby_pełniące_funkcje_w_organach_wymiaru_sprawiedliwości"
+    input = "A wikipedia link (#{url})"
+    expected = "A wikipedia link (<a href=\"#{url}\">#{url}</a>)"
+
+    assert_linked expected, input
+  end
+
+  def test_only_valid_encodings_are_accepted
+    str = "this is invalid \xA0 utf8"
+    assert_equal Encoding::UTF_8, str.encoding
+    assert !str.valid_encoding?
+
+    assert_raises ArgumentError do
+      Rinku.auto_link(str)
+    end
+  end
+
+  def test_the_famous_nbsp
+    input = "at http://google.com/\xC2\xA0;"
+    expected = "at <a href=\"http://google.com/\">http://google.com/</a>\xC2\xA0;"
+    assert_linked expected, input
+  end
 end
