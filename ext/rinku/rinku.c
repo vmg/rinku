@@ -16,12 +16,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <assert.h>
 
 #include "rinku.h"
 #include "autolink.h"
 #include "buffer.h"
+#include "utf8.h"
 
 typedef enum {
 	HTML_TAG_NONE = 0,
@@ -116,7 +116,7 @@ html_is_tag(const uint8_t *tag_data, size_t tag_size, const char *tagname)
 	if (i == tag_size)
 		return HTML_TAG_NONE;
 
-	if (isspace(tag_data[i]) || tag_data[i] == '>')
+	if (rinku_isspace(tag_data[i]) || tag_data[i] == '>')
 		return closed ? HTML_TAG_CLOSE : HTML_TAG_OPEN;
 
 	return HTML_TAG_NONE;
@@ -199,7 +199,7 @@ rinku_autolink(
 		link_text_cb = &autolink__print;
 
 	if (link_attr != NULL) {
-		while (isspace(*link_attr))
+		while (rinku_isspace(*link_attr))
 			link_attr++;
 	}
 
