@@ -48,22 +48,3 @@ file package('.gem') => %w[pkg/ rinku.gemspec] + $spec.files do |f|
   sh "gem build rinku.gemspec"
   mv File.basename(f.name), f.name
 end
-
-# GEMSPEC HELPERS ==========================================================
-task :gather => 'sundown:checkout' do |t|
-  files =
-    FileList[
-      'sundown/src/{buffer,autolink}.h',
-      'sundown/src/{buffer,autolink}.c',
-    ]
-  cp files, 'ext/rinku/',
-    :preserve => true,
-    :verbose => true
-end
-
-task 'sundown:checkout' do |t|
-  unless File.exists?('sundown/src/markdown.h')
-    sh 'git submodule init'
-    sh 'git submodule update'
-  end
-end

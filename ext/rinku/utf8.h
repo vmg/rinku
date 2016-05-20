@@ -13,45 +13,22 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef RINKU_AUTOLINK_H
-#define RINKU_AUTOLINK_H
+#ifndef RINKU_UTF8_H
+#define RINKU_UTF8_H
 
-#include <stdbool.h>
 #include <stdint.h>
-#include "buffer.h"
+#include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+bool rinku_isspace(char c);
+bool rinku_ispunct(char c);
+bool rinku_isdigit(char c);
+bool rinku_isalpha(char c);
+bool rinku_isalnum(char c);
 
-enum {
-	AUTOLINK_SHORT_DOMAINS = (1 << 0),
-};
+int32_t utf8proc_rewind(const uint8_t *data, size_t pos);
+size_t utf8proc_find_space(const uint8_t *str, size_t pos, size_t size);
 
-struct autolink_pos {
-	size_t start;
-	size_t end;
-};
-
-bool
-autolink_issafe(const uint8_t *link, size_t link_len);
-
-bool
-autolink__www(struct autolink_pos *res,
-	const uint8_t *data, size_t pos, size_t size, unsigned int flags);
-
-bool
-autolink__email(struct autolink_pos *res,
-	const uint8_t *data, size_t pos, size_t size, unsigned int flags);
-
-bool
-autolink__url(struct autolink_pos *res,
-	const uint8_t *data, size_t pos, size_t size, unsigned int flags);
-
-#ifdef __cplusplus
-}
-#endif
+bool utf8proc_is_space(int32_t uc);
+bool utf8proc_is_punctuation(int32_t uc);
 
 #endif
-
-/* vim: set filetype=c: */

@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'rinku'
-  s.version = '1.7.3'
+  s.version = '2.0.0'
   s.summary = "Mostly autolinking"
   s.description = <<-EOF
     A fast and very smart autolinking library that
@@ -16,15 +16,18 @@ Gem::Specification.new do |s|
     COPYING
     README.markdown
     Rakefile
-    ext/rinku/rinku.c
-    ext/rinku/rinku.h
     ext/rinku/autolink.c
     ext/rinku/autolink.h
     ext/rinku/buffer.c
     ext/rinku/buffer.h
     ext/rinku/extconf.rb
-    lib/rinku.rb
+    ext/rinku/rinku.c
+    ext/rinku/rinku.h
+    ext/rinku/rinku_rb.c
+    ext/rinku/utf8.c
+    ext/rinku/utf8.h
     lib/rails_rinku.rb
+    lib/rinku.rb
     rinku.gemspec
     test/autolink_test.rb
   ]
@@ -33,6 +36,8 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = ["COPYING"]
   s.extensions = ["ext/rinku/extconf.rb"]
   s.require_paths = ["lib"]
-  s.add_development_dependency("rake-compiler")
-  s.add_development_dependency("minitest")
+
+  s.add_development_dependency "rake"
+  s.add_development_dependency "rake-compiler"
+  s.add_development_dependency "minitest"
 end
