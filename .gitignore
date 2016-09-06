@@ -1,3 +1,4 @@
 .ruby-version
 lib/rinku.bundle
 tmp/
+Gemfile.lock
