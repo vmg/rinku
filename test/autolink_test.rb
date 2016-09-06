@@ -376,4 +376,13 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     url = "WwW.reddit.CoM"
     assert_linked generate_result(url), url
   end
+
+  def test_non_emails_ending_in_periods
+    assert_linked "abc/def@ghi.", "abc/def@ghi."
+    assert_linked "abc/def@ghi. ", "abc/def@ghi. "
+    assert_linked "abc/def@ghi. x", "abc/def@ghi. x"
+    assert_linked "abc/def@ghi.< x", "abc/def@ghi.< x"
+    assert_linked "abc/<a href=\"mailto:def@ghi.x\">def@ghi.x</a>", "abc/def@ghi.x"
+    assert_linked "abc/<a href=\"mailto:def@ghi.x\">def@ghi.x</a>. a", "abc/def@ghi.x. a"
+  end
 end

@@ -244,7 +244,7 @@ autolink__email(
 			break;
 	}
 
-	if ((link->end - pos) < 2 || nb != 1 || np == 0)
+	if ((link->end - pos) < 2 || nb != 1 || np == 0 || (np == 1 && data[link->end - 1] == '.'))
 		return false;
 
 	return autolink_delim(data, link);
