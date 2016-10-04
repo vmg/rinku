@@ -27,6 +27,7 @@
 #define strncasecmp	_strnicmp
 #endif
 
+// supported protocol and followed by a normal character
 bool
 autolink_issafe(const uint8_t *link, size_t link_len)
 {
@@ -169,7 +170,9 @@ check_domain(const uint8_t *data, size_t size,
 
 	for (i = link->start + 1; i < size - 1; ++i) {
 		if (data[i] == '.') np++;
-		else if (!rinku_isalnum(data[i]) && data[i] != '-') break;
+		else if (rinku_isalnum(data[i]) || data[i] == '-') { } // valid domain part
+		else if (data[i] == '?' || data[i] == '/' || rinku_isspace(data[i])) { break; } // end of domain
+		else if (data[i] >= 128) { return false; } // strange utf8 ... possibly lookalike characters
 	}
 
 	link->end = i;
@@ -279,18 +282,23 @@ autolink__url(
 {
 	assert(data[pos] == ':');
 
+	// check that we have "://" and a few characters
 	if ((size - pos) < 4 || data[pos + 1] != '/' || data[pos + 2] != '/')
 		return false;
 
+	// move after the ://
 	link->start = pos + 3;
 	link->end = 0;
 
+  // if there is no domain in this url then stop
 	if (!check_domain(data, size, link, flags & AUTOLINK_SHORT_DOMAINS))
 		return false;
 
+  // find where the url ends
 	link->start = pos;
 	link->end = utf8proc_find_space(data, link->end, size);
 
+  // move to before the protocol
 	while (link->start && rinku_isalpha(data[link->start - 1]))
 		link->start--;
 
