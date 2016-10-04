@@ -1,4 +1,3 @@
-# encoding: utf-8
 rootdir = File.dirname(File.dirname(__FILE__))
 $LOAD_PATH.unshift "#{rootdir}/lib"
 
