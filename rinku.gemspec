@@ -1,5 +1,3 @@
-# encoding: UTF-8
-
 Gem::Specification.new do |s|
   s.name = 'rinku'
   s.version = '2.0.1'
@@ -41,4 +39,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency "rake"
   s.add_development_dependency "rake-compiler"
   s.add_development_dependency "minitest", ">= 5.0"
+
+  s.required_ruby_version = '>= 2.0.0'
 end
