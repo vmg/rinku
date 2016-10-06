@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.email = 'vicent@github.com'
   s.homepage = 'https://github.com/vmg/rinku'
   s.authors = ["Vicent Marti"]
+  s.license = 'ISC'
   # = MANIFEST =
   s.files = %w[
     COPYING
