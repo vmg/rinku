@@ -362,6 +362,13 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "email#{NBSP}<a href=\"mailto:#{email_raw}\">#{email_raw}</a>", "email#{NBSP}#{email_raw}"
   end
 
+  def test_identifies_unicode_spaces
+    assert_linked(
+      %{This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>\u202F\u2028\u2001},
+      "This is just a test. http://www.pokemon.com\u202F\u2028\u2001"
+    )
+  end
+
   def test_www_is_case_insensitive
     url = "www.reddit.com"
     assert_linked generate_result(url), url
