@@ -144,11 +144,11 @@ autolink_delim_iter(const uint8_t *data, struct autolink_pos *link)
 {
 	size_t prev_link_end;
 	int iterations = 0;
-	autolink_delim(data, link);
 
 	while(link->end != 0) {
 		prev_link_end = link->end;
-		autolink_delim(data, link);
+		if (!autolink_delim(data, link))
+			return false;
 		if (prev_link_end == link->end || iterations > 5) {
 			break;
 		}
