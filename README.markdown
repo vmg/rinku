@@ -91,6 +91,12 @@ choose to use Rinku instead.
 
 ~~~~ruby
 require 'rails_rinku'
+include ActionView::Helpers::TextHelper
+post_body = "Welcome to my new blog at http://www.myblog.com/."
+auto_link(post_body, :html => { :target => '_blank' }) do |text|
+  truncate(text, :length => 15)
+end
+# => "Welcome to my new blog at <a href=\"http://www.myblog.com/\" target=\"_blank\">http://www.m...</a>."
 ~~~~
 
 The `rails_rinku` package monkeypatches Rails with an `auto_link` method that
