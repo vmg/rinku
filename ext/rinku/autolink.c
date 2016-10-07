@@ -140,6 +140,25 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 }
 
 static bool
+autolink_delim_iter(const uint8_t *data, struct autolink_pos *link)
+{
+	size_t prev_link_end;
+	int iterations = 0;
+	autolink_delim(data, link);
+
+	while(link->end != 0) {
+		prev_link_end = link->end;
+		autolink_delim(data, link);
+		if (prev_link_end == link->end || iterations > 5) {
+			break;
+		}
+		iterations++;
+	}
+
+	return true;
+}
+
+static bool
 check_domain(const uint8_t *data, size_t size,
 		struct autolink_pos *link, bool allow_short)
 {
@@ -198,7 +217,7 @@ autolink__www(
 		return false;
 
 	link->end = utf8proc_find_space(data, link->end, size);
-	return autolink_delim(data, link);
+	return autolink_delim_iter(data, link);
 }
 
 bool
@@ -278,5 +297,5 @@ autolink__url(
 	if (!autolink_issafe(data + link->start, size - link->start))
 		return false;
 
-	return autolink_delim(data, link);
+	return autolink_delim_iter(data, link);
 }
