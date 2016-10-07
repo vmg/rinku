@@ -9,7 +9,7 @@ require 'rinku'
 class RinkuAutoLinkTest < Minitest::Test
   def generate_result(link_text, href = nil)
     href ||= link_text
-    href = "http://" + href unless href =~ %r{\A\w+://}
+    href = "http://" + href unless href =~ %r{\A(\w+://|mailto:)}
     %{<a href="#{CGI.escapeHTML href}">#{CGI.escapeHTML link_text}</a>}
   end
 
@@ -399,5 +399,17 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
 
     # this produces invalid output, but limits how much work we will do
     assert_linked "&lt;<a href=\"http://www.google.com&gt;\">http://www.google.com&gt;</a>)&lt;)&lt;)&lt;)&lt;)&lt;)&lt;)", "&lt;http://www.google.com&gt;)&lt;)&lt;)&lt;)&lt;)&lt;)&lt;)"
+
+    url = "http://pokemon.com/bulbasaur"
+    assert_linked "URL is #{generate_result(url)}.", "URL is #{url}."
+    assert_linked "(URL is #{generate_result(url)}.)", "(URL is #{url}.)"
+
+    url = "www.pokemon.com/bulbasaur"
+    assert_linked "URL is #{generate_result(url)}.", "URL is #{url}."
+    assert_linked "(URL is #{generate_result(url)}.)", "(URL is #{url}.)"
+
+    url = "abc@xyz.com"
+    assert_linked "URL is #{generate_result(url, "mailto:#{url}")}.", "URL is #{url}."
+    assert_linked "(URL is #{generate_result(url, "mailto:#{url}")}.)", "(URL is #{url}.)"
   end
 end
