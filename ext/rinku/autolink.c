@@ -52,6 +52,8 @@ autolink_issafe(const uint8_t *link, size_t link_len)
 static bool
 autolink_delim(const uint8_t *data, struct autolink_pos *link)
 {
+	static const char *delim_chars = "?!.,:";
+
 	uint8_t cclose, copen = 0;
 	size_t i;
 
@@ -62,9 +64,18 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 		}
 
 	while (link->end > link->start) {
-		if (strchr("?!.,:", data[link->end - 1]) != NULL)
+		if (strchr(delim_chars, data[link->end - 1]) != NULL)
 			link->end--;
 
+		else if (data[link->end - 1] == ')') {
+			size_t new_end = link->end - 2;
+
+			if (new_end > 0 && strchr(delim_chars, data[new_end]) != NULL) {
+				link->end = new_end;
+				continue;
+			}
+			else break;
+		}
 		else if (data[link->end - 1] == ';') {
 			size_t new_end = link->end - 2;
 
