@@ -2,3 +2,4 @@
 lib/rinku.bundle
 tmp/
 Gemfile.lock
+/pkg
