@@ -110,14 +110,10 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 	}
 
 	if (copen != 0) {
-		size_t closing = 0;
-		size_t opening = 0;
-		size_t i = link->start;
-
-		/* Try to close the final punctuation sign in this same line;
-		 * if we managed to close it outside of the URL, that means that it's
-		 * not part of the URL. If it closes inside the URL, that means it
-		 * is part of the URL.
+		/* Try to close the final punctuation sign in this link; if
+		 * there's more closing than opening punctuation symbols in the
+		 * URL, we conservatively remove one closing punctuation from
+		 * the end of the URL.
 		 *
 		 * Examples:
 		 *
@@ -128,11 +124,15 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 		 *		=> http://www.pokemon.com/Pikachu_(Electric)
 		 *
 		 *	foo http://www.pokemon.com/Pikachu_(Electric)) bar
-		 *		=> http://www.pokemon.com/Pikachu_(Electric))
+		 *		=> http://www.pokemon.com/Pikachu_(Electric)
 		 *
 		 *	(foo http://www.pokemon.com/Pikachu_(Electric)) bar
-		 *		=> foo http://www.pokemon.com/Pikachu_(Electric)
+		 *		=> http://www.pokemon.com/Pikachu_(Electric)
 		 */
+
+		size_t closing = 0;
+		size_t opening = 0;
+		size_t i = link->start;
 
 		while (i < link->end) {
 			if (data[i] == copen)
@@ -143,7 +143,7 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 			i++;
 		}
 
-		if (closing != opening)
+		if (closing > opening)
 			link->end--;
 	}
 
