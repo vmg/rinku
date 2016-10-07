@@ -391,4 +391,10 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "abc/<a href=\"mailto:def@ghi.x\">def@ghi.x</a>", "abc/def@ghi.x"
     assert_linked "abc/<a href=\"mailto:def@ghi.x\">def@ghi.x</a>. a", "abc/def@ghi.x. a"
   end
+
+  def test_urls_ending_in_multiple_punctuation
+    url = "http://pokemon.com/bulbasaur"
+    assert_linked "URL is #{generate_result(url)}.", "URL is #{url}."
+    assert_linked "(URL is #{generate_result(url)}.)", "(URL is #{url}.)"
+  end
 end
