@@ -412,4 +412,24 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "URL is #{generate_result(url, "mailto:#{url}")}.", "URL is #{url}."
     assert_linked "(URL is #{generate_result(url, "mailto:#{url}")}.)", "(URL is #{url}.)"
   end
+
+  # see http://www.irongeek.com/homoglyph-attack-generator.php
+  def test_does_not_autolink_unicode_urls
+    [
+      "http://exampl\u0435.com",
+      "http://www.exampl\u0435.com",
+      "http://exampl\u0435.com",
+      "http://example.com\u0435",
+      "http://exampl.com.\u0435stuff"
+    ].each do |url|
+      assert_equal url, Rinku.auto_link(url)
+      assert_equal url, Rinku.auto_link(url, nil, nil, nil, Rinku::AUTOLINK_SHORT_DOMAINS)
+    end
+
+    ["http://example.com?stuff", "http://exampl.com/\u0435stuff"].each do |url|
+      assert_equal "<a href=\"#{url}\">#{url}</a>", Rinku.auto_link(url)
+    end
+
+    assert_equal "<a href=\"http://example.com\">http://example.com</a> stuff", Rinku.auto_link("http://example.com stuff")
+  end
 end
