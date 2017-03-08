@@ -124,8 +124,14 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 				closing++;
 		}
 
-		if (closing > opening)
-			utf8proc_back(data, &link->end);
+		if (copen == cclose) {
+			if (opening > 0)
+				utf8proc_back(data, &link->end);
+		}
+		else {
+			if (closing > opening)
+				utf8proc_back(data, &link->end);
+		}
 	}
 
 	return true;
