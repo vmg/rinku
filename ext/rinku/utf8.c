@@ -75,6 +75,30 @@ int32_t utf8proc_next(const uint8_t *str, size_t *pos)
 	return read_cp(str + p, length);
 }
 
+int32_t utf8proc_back(const uint8_t *str, size_t *pos)
+{
+	const size_t p = *pos;
+	int8_t length = 0;
+
+	if (!p)
+		return 0x0;
+
+	if ((str[p - 1] & 0x80) == 0x0) {
+		(*pos) -= 1;
+		return str[p - 1];
+	}
+
+	if (p > 1 && utf8proc_utf8class[str[p - 2]] == 2)
+		length = 2;
+	else if (p > 2 && utf8proc_utf8class[str[p - 3]] == 3)
+		length = 3;
+	else if (p > 3 && utf8proc_utf8class[str[p - 4]] == 4)
+		length = 4;
+
+	(*pos) -= length;
+	return read_cp(&str[*pos], length);
+}
+
 size_t utf8proc_find_space(const uint8_t *str, size_t pos, size_t size)
 {
 	while (pos < size) {
@@ -93,7 +117,7 @@ int32_t utf8proc_rewind(const uint8_t *data, size_t pos)
 	if (!pos)
 		return 0x0;
 
-	if ((data[pos - 1] & 0xC0) == 0x0)
+	if ((data[pos - 1] & 0x80) == 0x0)
 		return data[pos - 1];
 
 	if (pos > 1 && utf8proc_utf8class[data[pos - 2]] == 2)
@@ -104,6 +128,24 @@ int32_t utf8proc_rewind(const uint8_t *data, size_t pos)
 		length = 4;
 
 	return read_cp(&data[pos - length], length);
+}
+
+int32_t utf8proc_open_paren_character(int32_t cclose)
+{
+	switch (cclose) {
+	case '"': return '"';
+	case '\'':  return '\'';
+	case ')': return '(';
+	case ']': return '[';
+	case '}': return '{';
+	case 65289: return 65288; /* （） */
+	case 12305: return 12304; /* 【】 */
+	case 12303: return 12302; /* 『』 */
+	case 12301: return 12300; /* 「」 */
+	case 12299: return 12298; /* 《》 */
+	case 12297: return 12296; /* 〈〉 */
+	}
+	return 0;
 }
 
 bool utf8proc_is_space(int32_t uc)

@@ -52,7 +52,7 @@ autolink_issafe(const uint8_t *link, size_t link_len)
 static bool
 autolink_delim(const uint8_t *data, struct autolink_pos *link)
 {
-	uint8_t cclose, copen = 0;
+	int32_t cclose, copen = 0;
 	size_t i;
 
 	for (i = link->start; i < link->end; ++i)
@@ -88,15 +88,8 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 	if (link->end == link->start)
 		return false;
 
-	cclose = data[link->end - 1];
-
-	switch (cclose) {
-	case '"':	copen = '"'; break;
-	case '\'':	copen = '\''; break;
-	case ')':	copen = '('; break;
-	case ']':	copen = '['; break;
-	case '}':	copen = '{'; break;
-	}
+	cclose = utf8proc_rewind(data, link->end);
+	copen = utf8proc_open_paren_character(cclose);
 
 	if (copen != 0) {
 		/* Try to close the final punctuation sign in this link; if
@@ -124,16 +117,21 @@ autolink_delim(const uint8_t *data, struct autolink_pos *link)
 		size_t i = link->start;
 
 		while (i < link->end) {
-			if (data[i] == copen)
+			int32_t c = utf8proc_next(data, &i);
+			if (c == copen)
 				opening++;
-			else if (data[i] == cclose)
+			else if (c == cclose)
 				closing++;
-
-			i++;
 		}
 
-		if (closing > opening)
-			link->end--;
+		if (copen == cclose) {
+			if (opening > 0)
+				utf8proc_back(data, &link->end);
+		}
+		else {
+			if (closing > opening)
+				utf8proc_back(data, &link->end);
+		}
 	}
 
 	return true;

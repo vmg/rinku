@@ -412,4 +412,22 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "URL is #{generate_result(url, "mailto:#{url}")}.", "URL is #{url}."
     assert_linked "(URL is #{generate_result(url, "mailto:#{url}")}.)", "(URL is #{url}.)"
   end
+
+  def test_urls_with_parens
+    assert_linked "(<a href=\"http://example.com\">http://example.com</a>)", "(http://example.com)"
+    assert_linked "((<a href=\"http://example.com/()\">http://example.com/()</a>))", "((http://example.com/()))"
+    assert_linked "[<a href=\"http://example.com/()\">http://example.com/()</a>]", "[http://example.com/()]"
+
+    assert_linked "（<a href=\"http://example.com/\">http://example.com/</a>）", "（http://example.com/）"
+    assert_linked "【<a href=\"http://example.com/\">http://example.com/</a>】", "【http://example.com/】"
+    assert_linked "『<a href=\"http://example.com/\">http://example.com/</a>』", "『http://example.com/』"
+    assert_linked "「<a href=\"http://example.com/\">http://example.com/</a>」", "「http://example.com/」"
+    assert_linked "《<a href=\"http://example.com/\">http://example.com/</a>》", "《http://example.com/》"
+    assert_linked "〈<a href=\"http://example.com/\">http://example.com/</a>〉", "〈http://example.com/〉"
+  end
+
+  def test_urls_with_quotes
+    assert_linked "'<a href=\"http://example.com\">http://example.com</a>'", "'http://example.com'"
+    assert_linked "\"<a href=\"http://example.com\">http://example.com</a>\"\"", "\"http://example.com\"\""
+  end
 end
