@@ -192,6 +192,11 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "<a href=\"#{url}\">#{url}</a>", url
   end
 
+  def test_terminates_on_ampersand
+    url = "http://example.com"
+    assert_linked "hello &#39;<a href=\"#{url}\">#{url}</a>&#39; hello", "hello &#39;#{url}&#39; hello"
+  end
+
   def test_does_not_include_trailing_gt
     url = "http://example.com"
     assert_linked "&lt;<a href=\"#{url}\">#{url}</a>&gt;", "&lt;#{url}&gt;"
