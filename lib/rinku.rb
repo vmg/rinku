@@ -1,5 +1,5 @@
 module Rinku
-  VERSION = "2.0.2"
+  VERSION = "2.0.3"
 
   class << self
     attr_accessor :skip_tags
