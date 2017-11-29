@@ -13,10 +13,18 @@ module RailsRinku
     options.reverse_merge!(:link => :all, :html => {})
     text = h(text) unless text.html_safe?
 
+    tag_options_method = if Gem::Version.new(Rails.version) >= Gem::Version.new("5.1")
+      # Rails >= 5.1
+      tag_builder.method(:tag_options)
+    else
+      # Rails <= 5.0
+      method(:tag_options)
+    end
+
     Rinku.auto_link(
       text,
       options[:link],
-      tag_options(options[:html]),
+      tag_options_method.call(options[:html]),
       options[:skip],
       &block
     ).html_safe
