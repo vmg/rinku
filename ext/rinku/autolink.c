@@ -27,12 +27,13 @@
 #define strncasecmp	_strnicmp
 #endif
 
+// using supported protocol ?
 bool
 autolink_issafe(const uint8_t *link, size_t link_len)
 {
 	static const size_t valid_uris_count = 5;
 	static const char *valid_uris[] = {
-		"/", "http://", "https://", "ftp://", "mailto:"
+		"http://", "https://", "ftp://", "mailto:"
 	};
 
 	size_t i;
@@ -40,9 +41,7 @@ autolink_issafe(const uint8_t *link, size_t link_len)
 	for (i = 0; i < valid_uris_count; ++i) {
 		size_t len = strlen(valid_uris[i]);
 
-		if (link_len > len &&
-			strncasecmp((char *)link, valid_uris[i], len) == 0 &&
-			rinku_isalnum(link[len]))
+		if (link_len > len && strncasecmp((char *)link, valid_uris[i], len) == 0)
 			return true;
 	}
 
@@ -156,6 +155,7 @@ autolink_delim_iter(const uint8_t *data, struct autolink_pos *link)
 	return true;
 }
 
+// does this string start with a valid domain ?
 static bool
 check_domain(const uint8_t *data, size_t size,
 		struct autolink_pos *link, bool allow_short)
@@ -277,18 +277,23 @@ autolink__url(
 {
 	assert(data[pos] == ':');
 
+	// check that we have "://" and a few characters
 	if ((size - pos) < 4 || data[pos + 1] != '/' || data[pos + 2] != '/')
 		return false;
 
+	// move after the ://
 	link->start = pos + 3;
 	link->end = 0;
 
+  // if there is no domain in this url then stop
 	if (!check_domain(data, size, link, flags & AUTOLINK_SHORT_DOMAINS))
 		return false;
 
+  // find where the url ends
 	link->start = pos;
 	link->end = utf8proc_find_space(data, link->end, size);
 
+  // move to before the protocol
 	while (link->start && rinku_isalpha(data[link->start - 1]))
 		link->start--;
 
