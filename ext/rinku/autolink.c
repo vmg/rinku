@@ -38,9 +38,9 @@ is_valid_hostchar(const uint8_t *link, size_t link_len)
 bool
 autolink_issafe(const uint8_t *link, size_t link_len)
 {
-	static const size_t valid_uris_count = 5;
+	static const size_t valid_uris_count = 7;
 	static const char *valid_uris[] = {
-		"/", "http://", "https://", "ftp://", "mailto:"
+		"/", "http://", "https://", "ftp://", "sftp://", "ftps://", "mailto:"
 	};
 
 	size_t i;

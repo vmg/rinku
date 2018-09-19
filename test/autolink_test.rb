@@ -438,4 +438,16 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
   def test_underscore_in_subdomain
     assert_linked "<a href=\"http://foo_bar.xyz.com\">http://foo_bar.xyz.com</a>", "http://foo_bar.xyz.com"
   end
+
+  def test_ftp_autolink
+    assert_linked "<a href=\"ftp://foo.bar\">ftp://foo.bar</a>", "ftp://foo.bar"
+  end
+
+  def test_sftp_autolink
+    assert_linked "<a href=\"sftp://foo.bar\">sftp://foo.bar</a>", "sftp://foo.bar"
+  end
+
+  def test_ftps_autolink
+    assert_linked "<a href=\"ftps://foo.bar\">ftps://foo.bar</a>", "ftps://foo.bar"
+  end
 end

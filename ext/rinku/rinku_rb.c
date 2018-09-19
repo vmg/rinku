@@ -105,7 +105,7 @@ const char **rinku_load_tags(VALUE rb_skip)
  * NOTE: Currently the follow protocols are considered safe and are the
  * only ones that will be autolinked.
  *
- *     http:// https:// ftp:// mailto://
+ *     http:// https:// ftp:// sftp:// ftps:// mailto://
  *
  * Email addresses are also autolinked by default. URLs without a protocol
  * specifier but starting with 'www.' will also be autolinked, defaulting to
@@ -115,8 +115,8 @@ const char **rinku_load_tags(VALUE rb_skip)
  * HTML, Rinku is smart enough to skip the links that are already enclosed in `<a>`
  * tags.`
  *
- * -   `mode` is a symbol, either `:all`, `:urls` or `:email_addresses`, 
- * which specifies which kind of links will be auto-linked. 
+ * -   `mode` is a symbol, either `:all`, `:urls` or `:email_addresses`,
+ * which specifies which kind of links will be auto-linked.
  *
  * -   `link_attr` is a string containing the link attributes for each link that
  * will be generated. These attributes are not sanitized and will be include as-is
@@ -162,7 +162,7 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	struct callback_data cbdata;
 
 	rb_scan_args(argc, argv, "14&", &rb_text, &rb_mode,
-		&rb_html, &rb_skip, &rb_flags, &rb_block); 
+		&rb_html, &rb_skip, &rb_flags, &rb_block);
 
 	text_encoding = validate_encoding(rb_text);
 
@@ -236,4 +236,3 @@ void RUBY_EXPORT Init_rinku()
 	rb_define_module_function(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(AUTOLINK_SHORT_DOMAINS));
 }
-
