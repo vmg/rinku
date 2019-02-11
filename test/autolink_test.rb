@@ -430,4 +430,12 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     assert_linked "'<a href=\"http://example.com\">http://example.com</a>'", "'http://example.com'"
     assert_linked "\"<a href=\"http://example.com\">http://example.com</a>\"\"", "\"http://example.com\"\""
   end
+
+  def test_underscore_in_domain
+    assert_linked "http://foo_bar.com", "http://foo_bar.com"
+  end
+
+  def test_underscore_in_subdomain
+    assert_linked "<a href=\"http://foo_bar.xyz.com\">http://foo_bar.xyz.com</a>", "http://foo_bar.xyz.com"
+  end
 end

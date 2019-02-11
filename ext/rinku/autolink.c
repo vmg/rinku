@@ -27,6 +27,14 @@
 #define strncasecmp	_strnicmp
 #endif
 
+static int
+is_valid_hostchar(const uint8_t *link, size_t link_len)
+{
+	size_t pos = 0;
+	int32_t ch = utf8proc_next(link, &pos);
+	return !utf8proc_is_space(ch) && !utf8proc_is_punctuation(ch);
+}
+
 bool
 autolink_issafe(const uint8_t *link, size_t link_len)
 {
@@ -160,15 +168,24 @@ static bool
 check_domain(const uint8_t *data, size_t size,
 		struct autolink_pos *link, bool allow_short)
 {
-	size_t i, np = 0;
+	size_t i, np = 0, uscore1 = 0, uscore2 = 0;
 
 	if (!rinku_isalnum(data[link->start]))
 		return false;
 
 	for (i = link->start + 1; i < size - 1; ++i) {
-		if (data[i] == '.') np++;
-		else if (!rinku_isalnum(data[i]) && data[i] != '-') break;
+		if (data[i] == '_') {
+			uscore2++;
+		} else if (data[i] == '.') {
+			uscore1 = uscore2;
+			uscore2 = 0;
+			np++;
+		} else if (!is_valid_hostchar(data + i, size - i) && data[i] != '-')
+			break;
 	}
+
+	if (uscore1 > 0 || uscore2 > 0)
+		return false;
 
 	link->end = i;
 
