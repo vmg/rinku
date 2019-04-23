@@ -104,7 +104,9 @@ size_t utf8proc_find_space(const uint8_t *str, size_t pos, size_t size)
 	while (pos < size) {
 		const size_t last = pos;
 		int32_t uc = utf8proc_next(str, &pos);
-		if (utf8proc_is_space(uc))
+		if (uc == 0xFFFD)
+			return size;
+		else if (utf8proc_is_space(uc))
 			return last;
 	}
 	return size;
