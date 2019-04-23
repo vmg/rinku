@@ -27,7 +27,7 @@ class RinkuAutoLinkTest < Minitest::Test
   end
 
   def test_global_skip_tags
-    assert_equal Rinku.skip_tags, nil
+    assert_nil Rinku.skip_tags
     Rinku.skip_tags = ['pre']
     assert_equal Rinku.skip_tags, ['pre']
 
