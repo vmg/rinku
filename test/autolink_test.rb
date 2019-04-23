@@ -27,7 +27,7 @@ class RinkuAutoLinkTest < Minitest::Test
   end
 
   def test_global_skip_tags
-    assert_equal Rinku.skip_tags, nil
+    assert_nil Rinku.skip_tags
     Rinku.skip_tags = ['pre']
     assert_equal Rinku.skip_tags, ['pre']
 
@@ -437,5 +437,9 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
 
   def test_underscore_in_subdomain
     assert_linked "<a href=\"http://foo_bar.xyz.com\">http://foo_bar.xyz.com</a>", "http://foo_bar.xyz.com"
+  end
+
+  def test_regression_84
+    assert_linked "<a href=\"https://www.keepright.atの情報をもとにエラー修正\">https://www.keepright.atの情報をもとにエラー修正</a>", "https://www.keepright.atの情報をもとにエラー修正"
   end
 end
