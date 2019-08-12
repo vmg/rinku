@@ -105,6 +105,14 @@ end
 The `rails_rinku` package monkeypatches Rails with an `auto_link` method that
 mimics 100% the original one, parameter per parameter. It's just faster.
 
+Rails Installation
+----------------------------------------------------
+
+* Add: `gem 'rinku', :require => 'rails_rinku'` to your `Gemfile.rb`
+* Run `bundle install`.
+* Now you should have the `auto_link` method available in your views!
+
+
 Developing
 ----------
 ```
