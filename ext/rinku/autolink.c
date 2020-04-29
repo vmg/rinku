@@ -255,7 +255,7 @@ autolink__email(
 		if (rinku_isalnum(c))
 			continue;
 
-		if (strchr(".+-_%", c) != NULL)
+		if (strchr(".+-_%äöüß", c) != NULL)
 			continue;
 
 		break;

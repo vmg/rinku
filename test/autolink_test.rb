@@ -53,6 +53,11 @@ class RinkuAutoLinkTest < Minitest::Test
     assert_linked "hello &#39;<a href=\"#{url}\">#{url}</a>&#39; hello", "hello &#39;#{url}&#39; hello"
   end
 
+  def test_auto_link_email_can_handle_international_accepted_characters
+    address = "björn-jürgen.nußbaum@example.com"
+    assert_linked "<a href=\"mailto:#{address}\">#{address}</a>", address
+  end
+
   def test_does_not_segfault
     assert_linked "< this is just a test", "< this is just a test"
   end
