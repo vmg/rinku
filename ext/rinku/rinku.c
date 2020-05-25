@@ -49,7 +49,7 @@ static autolink_parse_cb g_callbacks[] = {
 
 static const char *g_hrefs[] = {
 	NULL,
-	"<a href=\"http://",
+	"<a href=\"https://",
 	"<a href=\"mailto:",
 	"<a href=\"",
 };
