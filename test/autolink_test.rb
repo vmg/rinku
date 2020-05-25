@@ -7,9 +7,10 @@ require 'uri'
 require 'rinku'
 
 class RinkuAutoLinkTest < Minitest::Test
+
   def generate_result(link_text, href = nil)
     href ||= link_text
-    href = "http://" + href unless href =~ %r{\A(\w+://|mailto:)}
+    href = "https://" + href unless href =~ %r{\A(\w+://|mailto:)}
     %{<a href="#{CGI.escapeHTML href}">#{CGI.escapeHTML link_text}</a>}
   end
 
@@ -32,7 +33,7 @@ class RinkuAutoLinkTest < Minitest::Test
     assert_equal Rinku.skip_tags, ['pre']
 
     Rinku.skip_tags = ['pa']
-    url = 'This is just a <pa>http://www.pokemon.com</pa> test'
+    url = 'This is just a <pa>https://www.pokemon.com</pa> test'
     assert_equal Rinku.auto_link(url), url
 
     Rinku.skip_tags = nil
@@ -76,7 +77,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
   http://www.amd.com
 </div>
 <pre>
-  CODE <a href="http://www.less.es">www.less.es</a>
+  CODE <a href="https://www.less.es">www.less.es</a>
 </pre>
     result
     assert_equal result, Rinku.auto_link(html, :all, nil, ["div", "a"])
@@ -232,10 +233,10 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     email_result = %{<a href="mailto:#{email_raw}">#{email_raw}</a>}
     email2_raw    = '+david@loudthinking.com'
     email2_result = %{<a href="mailto:#{email2_raw}">#{email2_raw}</a>}
-    link_raw     = 'http://www.rubyonrails.com'
+    link_raw     = 'https://www.rubyonrails.com'
     link_result  = %{<a href="#{link_raw}">#{link_raw}</a>}
     link2_raw    = 'www.rubyonrails.com'
-    link2_result = %{<a href="http://#{link2_raw}">#{link2_raw}</a>}
+    link2_result = %{<a href="https://#{link2_raw}">#{link2_raw}</a>}
     link3_raw    = 'http://manuals.ruby-on-rails.com/read/chapter.need_a-period/103#page281'
     link3_result = %{<a href="#{link3_raw}">#{link3_raw}</a>}
     link4_raw    = CGI.escapeHTML 'http://foo.example.com/controller/action?parm=value&p2=v2#anchor123'
