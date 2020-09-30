@@ -86,7 +86,7 @@ of the name of the link. E.g.
     ~~~~~~
 
 Rinku is a drop-in replacement for Rails 3.1 `auto_link`
-----------------------------------------------------
+-------------------------------------------------------
 
 Auto-linking functionality has been removed from Rails 3.1,
 and is instead offered as a standalone gem, `rails_autolink`. You can
@@ -120,8 +120,8 @@ I am Vicent Marti, and I wrote Rinku.
 While Rinku is busy doing autolinks, you should be busy following me on twitter.
 [`@vmg`](http://twitter.com/vmg). Do it.
 
-Rinku has an awesome license
-----------------------------
+Rinku has an wonderfull license with lots of benefits
+-----------------------------------------------------
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
