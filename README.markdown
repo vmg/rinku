@@ -64,7 +64,7 @@ will be generated. These attributes are not sanitized and will be include as-is
 in each generated link, e.g.
 
      ~~~~~ruby
-     auto_link('http://www.pokemon.com', :all, 'target="_blank" rel="noopener"')
+     Rinku.auto_link('http://www.pokemon.com', :all, 'target="_blank" rel="noopener"')
      # => '<a href="http://www.pokemon.com" target="_blank" rel="noopener">http://www.pokemon.com</a>'
      ~~~~~
 
@@ -77,7 +77,7 @@ be yielded for each found link in the text, and its return value will be used in
 of the name of the link. E.g.
 
     ~~~~~ruby
-    auto_link('Check it out at http://www.pokemon.com') do |url|
+    Rinku.auto_link('Check it out at http://www.pokemon.com') do |url|
       "THE POKEMAN WEBSITEZ"
     end
     # => 'Check it out at <a href="http://www.pokemon.com">THE POKEMAN WEBSITEZ</a>'
