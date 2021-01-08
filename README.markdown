@@ -21,6 +21,10 @@ The Rinku source is available at GitHub:
 
     $ git clone git://github.com/vmg/rinku.git
 
+...just paste it into your Gemfile:
+
+    $ gem "rinku", git: 'git://github.com/vmg/rinku.git', branch: 'master'
+
 Rinku is a standalone library
 -----------------------------
 
