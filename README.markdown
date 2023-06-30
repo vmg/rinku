@@ -1,7 +1,6 @@
 Rinku does linking
 ==================
 
-[![Build Status](https://travis-ci.org/vmg/rinku.svg?branch=master)](https://travis-ci.org/vmg/rinku)
 [![Dependency Status](https://www.versioneye.com/ruby/rinku/badge.svg)](https://www.versioneye.com/ruby/rinku)
 
 Rinku is a Ruby library that does autolinking.
