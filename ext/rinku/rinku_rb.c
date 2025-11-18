@@ -15,8 +15,6 @@
  */
 #include <stdio.h>
 
-#define RUBY_EXPORT __attribute__ ((visibility ("default")))
-
 #include <ruby.h>
 #include <ruby/encoding.h>
 
@@ -230,10 +228,10 @@ rb_rinku_autolink(int argc, VALUE *argv, VALUE self)
 	return result;
 }
 
-void RUBY_EXPORT Init_rinku()
+RUBY_FUNC_EXPORTED void
+Init_rinku(void)
 {
 	rb_mRinku = rb_define_module("Rinku");
 	rb_define_module_function(rb_mRinku, "auto_link", rb_rinku_autolink, -1);
 	rb_define_const(rb_mRinku, "AUTOLINK_SHORT_DOMAINS", INT2FIX(AUTOLINK_SHORT_DOMAINS));
 }
-
