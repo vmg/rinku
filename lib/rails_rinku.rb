@@ -11,7 +11,7 @@ module RailsRinku
       options[:skip] = args[2]
     end
     options.reverse_merge!(:link => :all, :html => {})
-    text = h(text) unless text.html_safe?
+    text = ERB::Util.html_escape(text) unless text.html_safe?
 
     tag_options_method = if Gem::Version.new(Rails.version) >= Gem::Version.new("5.1")
       # Rails >= 5.1
