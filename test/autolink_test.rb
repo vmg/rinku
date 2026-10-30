@@ -2,9 +2,14 @@ require 'bundler/setup'
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 
 require 'minitest/autorun'
-require 'cgi'
 require 'uri'
 require 'rinku'
+begin
+  require 'cgi/escape'
+rescue LoadError
+  # for Ruby versions older than 2.2
+  require 'cgi'
+end
 
 class RinkuAutoLinkTest < Minitest::Test
   def generate_result(link_text, href = nil)
@@ -291,6 +296,7 @@ This is just a test. <a href="http://www.pokemon.com">http://www.pokemon.com</a>
     ret = Rinku.auto_link str
     assert_equal str.encoding, ret.encoding
 
+    str = str.dup
     str.encode! 'binary'
 
     ret = Rinku.auto_link str
